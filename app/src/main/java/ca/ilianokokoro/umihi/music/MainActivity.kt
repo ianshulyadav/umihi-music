@@ -29,12 +29,24 @@ import ca.ilianokokoro.umihi.music.extensions.playSong
 import ca.ilianokokoro.umihi.music.ui.components.dialog.UpdateDialog
 import ca.ilianokokoro.umihi.music.ui.navigation.NavigationRoot
 import ca.ilianokokoro.umihi.music.ui.theme.UmihiMusicTheme
+import ca.ilianokokoro.umihi.music.ui.theme.ColorSchemePair
+import ca.ilianokokoro.umihi.music.ui.theme.ColorSchemeProcessor
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.DisposableEffect
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player
 import cat.ereza.customactivityoncrash.config.CaocConfig
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import org.schabi.newpipe.extractor.NewPipe
+
 
 
 class MainActivity : ComponentActivity() {
@@ -54,7 +66,57 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            UmihiMusicTheme {
+            val controller by PlayerManager.controllerState.collectAsState()
+            var colorSchemeOverride by remember { mutableStateOf<ColorSchemePair?>(null) }
+
+            DisposableEffect(controller) {
+                val currentController = controller ?: return@DisposableEffect onDispose {}
+
+                val listener = object : Player.Listener {
+                    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                        val artworkUri = mediaItem?.mediaMetadata?.artworkUri?.toString()
+                        if (artworkUri != null) {
+                            lifecycleScope.launch {
+                                val processor = ColorSchemeProcessor.getInstance(this@MainActivity)
+                                val scheme = processor.getOrGenerateColorScheme(artworkUri)
+                                colorSchemeOverride = scheme
+                            }
+                        } else {
+                            colorSchemeOverride = null
+                        }
+                    }
+
+                    override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
+                        val artworkUri = mediaMetadata.artworkUri?.toString()
+                        if (artworkUri != null) {
+                            lifecycleScope.launch {
+                                val processor = ColorSchemeProcessor.getInstance(this@MainActivity)
+                                val scheme = processor.getOrGenerateColorScheme(artworkUri)
+                                colorSchemeOverride = scheme
+                            }
+                        } else {
+                            colorSchemeOverride = null
+                        }
+                    }
+                }
+
+                currentController.addListener(listener)
+
+                val initialUri = currentController.currentMediaItem?.mediaMetadata?.artworkUri?.toString()
+                if (initialUri != null) {
+                    lifecycleScope.launch {
+                        val processor = ColorSchemeProcessor.getInstance(this@MainActivity)
+                        val scheme = processor.getOrGenerateColorScheme(initialUri)
+                        colorSchemeOverride = scheme
+                    }
+                }
+
+                onDispose {
+                    currentController.removeListener(listener)
+                }
+            }
+
+            UmihiMusicTheme(colorSchemePairOverride = colorSchemeOverride) {
                 NavigationRoot(
                     modifier = Modifier.fillMaxSize(),
                 )

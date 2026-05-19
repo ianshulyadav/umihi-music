@@ -194,4 +194,7 @@ dependencies {
     // New Pipe Extractor
     implementation(libs.newpipeextractor)
 
-}
+    // Lyrics romanization dependencies
+    implementation(libs.kuromoji.ipadic)
+    implementation(libs.pinyin4j.core)
+}

@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
@@ -100,7 +101,7 @@ fun PlayerControls(
             )
         }
 
-        // Animated Playback Controls from PixelPlayer (Slightly smaller, 76.dp height)
+        // Animated Playback Controls from PixelPlayer (Slightly smaller, 70.dp height)
         AnimatedPlaybackControls(
             isPlayingProvider = { isPlaying },
             onPrevious = { PlayerManager.currentController?.seekToPrevious() },
@@ -112,14 +113,14 @@ fun PlayerControls(
                 }
             },
             onNext = { PlayerManager.currentController?.seekToNext() },
-            height = 76.dp,
-            playPauseIconSize = 30.dp,
-            iconSize = 26.dp,
+            height = 70.dp,
+            playPauseIconSize = 26.dp,
+            iconSize = 22.dp,
             pressAnimationSpec = spring(
                 dampingRatio = Spring.DampingRatioNoBouncy,
                 stiffness = Spring.StiffnessMediumLow
             ),
-            modifier = Modifier.padding(vertical = 12.dp)
+            modifier = Modifier.padding(vertical = 10.dp)
         )
 
         // Toggle Buttons Row (Shuffle, Repeat, Favorite, Connect Device, Lyrics, Queue)
@@ -211,6 +212,7 @@ fun PlayerControls(
                     onClick = onOpenQueue,
                     modifier = Modifier
                         .size(44.dp)
+                        .offset(y = (-6).dp)
                         .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape)
                 ) {
                     androidx.compose.material3.Icon(

@@ -99,4 +99,9 @@
     <string name="keep_screen_on_title">Keep Screen Always On</string>
     <string name="keep_screen_on_title_description">Prevents the display from turning off while the app is open</string>
     <string name="downloading_update">Downloading Update...</string>
+    <string name="lyrics_settings_title">Lyrics</string>
+    <string name="use_animated_lyrics_title">Animated Lyrics</string>
+    <string name="use_animated_lyrics_desc">Enable smooth animated canvas flows on active synced lyric lines</string>
+    <string name="animated_lyrics_blur_title">Lyrics Blur Effect</string>
+    <string name="animated_lyrics_blur_desc">Apply background blur behind active lyrics for premium visuals</string>
 </resources>

@@ -138,6 +138,20 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         )
     }
 
+    fun updateUseAnimatedLyricsSetting(value: Boolean) {
+        updateSetting(
+            DatastoreRepository.PreferenceKeys.USE_ANIMATED_LYRICS,
+            value
+        )
+    }
+
+    fun updateAnimatedLyricsBlurEnabledSetting(value: Boolean) {
+        updateSetting(
+            DatastoreRepository.PreferenceKeys.ANIMATED_LYRICS_BLUR_ENABLED,
+            value
+        )
+    }
+
 
     fun checkForUpdates() {
         viewModelScope.launch {

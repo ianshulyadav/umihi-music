@@ -65,6 +65,17 @@ class PlayerViewModel(application: Application) :
         updateCurrentSong()
         updateIsLoadingState()
         updateIsPlayingState()
+
+        viewModelScope.launch {
+            ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository(application).settings.collect { settings ->
+                _uiState.update {
+                    it.copy(
+                        useAnimatedLyrics = settings.useAnimatedLyrics,
+                        animatedLyricsBlurEnabled = settings.animatedLyricsBlurEnabled
+                    )
+                }
+            }
+        }
     }
 
 

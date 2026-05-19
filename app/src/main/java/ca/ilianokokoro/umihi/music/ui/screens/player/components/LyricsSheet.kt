@@ -33,6 +33,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -62,6 +65,17 @@ fun LyricsSheet(
         modifier = modifier
             .fillMaxSize()
             .background(Color.Black)
+            .pointerInput(Unit) {
+                detectVerticalDragGestures(
+                    onDragEnd = {},
+                    onVerticalDrag = { change, dragAmount ->
+                        change.consume()
+                        if (dragAmount > 20) {
+                            onClose()
+                        }
+                    }
+                )
+            }
     ) {
         if (currentSong != null) {
             SmartImage(
@@ -181,7 +195,7 @@ fun LyricsSheet(
                         val lyrics = uiState.lyrics!!
                         val playbackProgress = uiState.playbackProgress.position
 
-                        if (lyrics.synced.isNotEmpty()) {
+                        if (!lyrics.synced.isNullOrEmpty()) {
                             val activeLineIndex by remember(lyrics, playbackProgress) {
                                 derivedStateOf {
                                     val index = lyrics.synced.indexOfLast { playbackProgress >= it.time }
@@ -194,6 +208,10 @@ fun LyricsSheet(
                             LaunchedEffect(activeLineIndex) {
                                 val target = (activeLineIndex - 2).coerceAtLeast(0)
                                 lazyListState.animateScrollToItem(target)
+                            }
+
+                            val positionFlow = remember {
+                                snapshotFlow { uiState.playbackProgress.position.toLong() }
                             }
 
                             LazyColumn(
@@ -209,23 +227,80 @@ fun LyricsSheet(
                                     val fontSize = if (isActive) 24.sp else 20.sp
                                     val color = if (isActive) MaterialTheme.colorScheme.primary else Color.White
 
-                                    Text(
-                                        text = line.line,
-                                        style = androidx.compose.ui.text.TextStyle(
-                                            fontFamily = GoogleSansRounded,
-                                            fontWeight = fontWeight,
-                                            fontSize = fontSize,
-                                            lineHeight = fontSize * 1.4f,
-                                            textAlign = TextAlign.Start
-                                        ),
-                                        color = color.copy(alpha = alpha),
+                                    Column(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .clickable {
                                                 PlayerManager.currentController?.seekTo(line.time.toLong())
                                             }
-                                            .padding(vertical = 4.dp)
-                                    )
+                                            .padding(vertical = 4.dp),
+                                        horizontalAlignment = Alignment.Start
+                                    ) {
+                                        // Original Text
+                                        Text(
+                                            text = line.line,
+                                            style = androidx.compose.ui.text.TextStyle(
+                                                fontFamily = GoogleSansRounded,
+                                                fontWeight = fontWeight,
+                                                fontSize = fontSize,
+                                                lineHeight = fontSize * 1.4f,
+                                                textAlign = TextAlign.Start
+                                            ),
+                                            color = color.copy(alpha = alpha)
+                                        )
+
+                                        // Romanization
+                                        if (!line.romanization.isNullOrEmpty()) {
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(
+                                                text = line.romanization,
+                                                style = androidx.compose.ui.text.TextStyle(
+                                                    fontFamily = GoogleSansRounded,
+                                                    fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                                                    fontSize = if (isActive) 18.sp else 16.sp,
+                                                    lineHeight = (if (isActive) 18.sp else 16.sp) * 1.3f,
+                                                    textAlign = TextAlign.Start
+                                                ),
+                                                color = (if (isActive) MaterialTheme.colorScheme.secondary else Color.White).copy(alpha = alpha * 0.8f)
+                                            )
+                                        }
+
+                                        // Translation
+                                        if (!line.translation.isNullOrEmpty()) {
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(
+                                                text = line.translation,
+                                                style = androidx.compose.ui.text.TextStyle(
+                                                    fontFamily = GoogleSansRounded,
+                                                    fontWeight = if (isActive) FontWeight.Medium else FontWeight.Normal,
+                                                    fontSize = if (isActive) 18.sp else 16.sp,
+                                                    lineHeight = (if (isActive) 18.sp else 16.sp) * 1.3f,
+                                                    textAlign = TextAlign.Start
+                                                ),
+                                                color = Color.White.copy(alpha = alpha * 0.7f)
+                                            )
+                                        }
+
+                                        // Active Bubble Line Animation
+                                        if (isActive && uiState.useAnimatedLyrics) {
+                                            val nextTime = lyrics.synced.getOrNull(index + 1)?.time ?: Int.MAX_VALUE
+                                            ca.ilianokokoro.umihi.music.ui.screens.player.lyrics.BubblesLine(
+                                                positionFlow = positionFlow,
+                                                time = line.time,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                nextTime = nextTime,
+                                                modifier = Modifier
+                                                    .padding(top = 8.dp)
+                                                    .then(
+                                                        if (uiState.animatedLyricsBlurEnabled) {
+                                                            Modifier.blur(2.dp)
+                                                        } else {
+                                                            Modifier
+                                                        }
+                                                    )
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         } else {
@@ -234,7 +309,7 @@ fun LyricsSheet(
                                 verticalArrangement = Arrangement.spacedBy(20.dp),
                                 modifier = Modifier.fillMaxSize()
                             ) {
-                                itemsIndexed(lyrics.plain) { _, line ->
+                                itemsIndexed(lyrics.plain!!) { _, line ->
                                     Text(
                                         text = line,
                                         style = androidx.compose.ui.text.TextStyle(

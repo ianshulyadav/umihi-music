@@ -115,7 +115,8 @@ object Constants {
         const val USE_SPECIAL_LANGUAGE = "use-special-language"
         const val USE_AUDIO_OFFLOAD = "use-audio-offload"
         const val KEEP_SCREEN_ON = "keep-screen-on"
-
+        const val USE_ANIMATED_LYRICS = "use-animated-lyrics"
+        const val ANIMATED_LYRICS_BLUR_ENABLED = "animated-lyrics-blur-enabled"
     }
 
     object Database {

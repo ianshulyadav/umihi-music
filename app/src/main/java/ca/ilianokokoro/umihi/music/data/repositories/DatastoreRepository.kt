@@ -15,6 +15,8 @@ import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.Prefere
 import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.UPDATE_CHANNEL
 import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.USE_AUDIO_OFFLOAD
 import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.USE_SPECIAL_LANGUAGE
+import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.USE_ANIMATED_LYRICS
+import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.ANIMATED_LYRICS_BLUR_ENABLED
 import ca.ilianokokoro.umihi.music.models.Cookies
 import ca.ilianokokoro.umihi.music.models.UmihiSettings
 import kotlinx.coroutines.flow.first
@@ -33,6 +35,8 @@ class DatastoreRepository(private val context: Context) {
         val USE_SPECIAL_LANGUAGE = booleanPreferencesKey(Constants.Datastore.USE_SPECIAL_LANGUAGE)
         val USE_AUDIO_OFFLOAD = booleanPreferencesKey(Constants.Datastore.USE_AUDIO_OFFLOAD)
         val KEEP_SCREEN_ON = booleanPreferencesKey(Constants.Datastore.KEEP_SCREEN_ON)
+        val USE_ANIMATED_LYRICS = booleanPreferencesKey(Constants.Datastore.USE_ANIMATED_LYRICS)
+        val ANIMATED_LYRICS_BLUR_ENABLED = booleanPreferencesKey(Constants.Datastore.ANIMATED_LYRICS_BLUR_ENABLED)
     }
 
     suspend fun <T> save(key: Preferences.Key<T>, value: T) {
@@ -48,6 +52,8 @@ class DatastoreRepository(private val context: Context) {
         val useSpecialLanguage = it[USE_SPECIAL_LANGUAGE] ?: false
         val useAudioOffload = it[USE_AUDIO_OFFLOAD] ?: false
         val keepScreenOn = it[KEEP_SCREEN_ON] ?: false
+        val useAnimatedLyrics = it[USE_ANIMATED_LYRICS] ?: true
+        val animatedLyricsBlurEnabled = it[ANIMATED_LYRICS_BLUR_ENABLED] ?: true
         val cookies = cookies.first()
         val dataSyncId = dataSyncId.first()
 
@@ -58,7 +64,9 @@ class DatastoreRepository(private val context: Context) {
             dataSyncId = dataSyncId,
             useSpecialLanguage = useSpecialLanguage,
             useAudioOffload = useAudioOffload,
-            keepScreenOn = keepScreenOn
+            keepScreenOn = keepScreenOn,
+            useAnimatedLyrics = useAnimatedLyrics,
+            animatedLyricsBlurEnabled = animatedLyricsBlurEnabled
         )
     }
 
