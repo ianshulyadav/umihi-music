@@ -37,11 +37,14 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import ca.ilianokokoro.umihi.music.core.Constants
 import ca.ilianokokoro.umihi.music.models.Song
 import ca.ilianokokoro.umihi.music.ui.components.SquareImage
 import ca.ilianokokoro.umihi.music.ui.screens.player.components.PlayerControls
 import ca.ilianokokoro.umihi.music.ui.screens.player.components.QueueBottomSheet
+import ca.ilianokokoro.umihi.music.ui.screens.player.components.LyricsSheet
 
 @Composable
 fun PlayerScreen(
@@ -75,10 +78,21 @@ fun PlayerScreen(
             modifier = modifier
                 .padding(8.dp)
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background),
-
+                .background(MaterialTheme.colorScheme.background)
+                .pointerInput(Unit) {
+                    detectVerticalDragGestures(
+                        onDragEnd = {},
+                        onVerticalDrag = { change, dragAmount ->
+                            change.consume()
+                            if (dragAmount < -15) {
+                                playerViewModel.setQueueVisibility(true)
+                            } else if (dragAmount > 15) {
+                                playerViewModel.setQueueVisibility(false)
+                            }
+                        }
+                    )
+                },
             horizontalAlignment = Alignment.CenterHorizontally
-
         ) {
             Thumbnail(
                 href = currentSong?.thumbnailHref.toString(),
@@ -105,6 +119,9 @@ fun PlayerScreen(
                     onUpdateSeekBarHeldState = playerViewModel::updateSeekBarHeldState,
                     onOpenQueue = {
                         playerViewModel.setQueueVisibility(true)
+                    },
+                    onToggleLyrics = {
+                        playerViewModel.toggleLyricsVisibility(true)
                     }
                 )
             }
@@ -114,7 +131,20 @@ fun PlayerScreen(
         Row(
             modifier = modifier
                 .padding(8.dp)
-                .fillMaxSize(),
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectVerticalDragGestures(
+                        onDragEnd = {},
+                        onVerticalDrag = { change, dragAmount ->
+                            change.consume()
+                            if (dragAmount < -15) {
+                                playerViewModel.setQueueVisibility(true)
+                            } else if (dragAmount > 15) {
+                                playerViewModel.setQueueVisibility(false)
+                            }
+                        }
+                    )
+                },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceEvenly
 
@@ -145,6 +175,9 @@ fun PlayerScreen(
                     onUpdateSeekBarHeldState = playerViewModel::updateSeekBarHeldState,
                     onOpenQueue = {
                         playerViewModel.setQueueVisibility(true)
+                    },
+                    onToggleLyrics = {
+                        playerViewModel.toggleLyricsVisibility(true)
                     }
                 )
             }
@@ -159,7 +192,16 @@ fun PlayerScreen(
         QueueBottomSheet(
             changeVisibility = { playerViewModel.setQueueVisibility(it) },
             currentSong = uiState.queue.getOrNull(uiState.currentIndex),
-            songs = uiState.queue
+            songs = uiState.queue,
+            playerViewModel = playerViewModel
+        )
+    }
+
+    // Lyrics
+    if (uiState.showLyrics) {
+        LyricsSheet(
+            onClose = { playerViewModel.toggleLyricsVisibility(false) },
+            playerViewModel = playerViewModel
         )
     }
 }

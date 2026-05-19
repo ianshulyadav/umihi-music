@@ -31,6 +31,11 @@ import ca.ilianokokoro.umihi.music.ui.components.WavySliderExpressive
 import ca.ilianokokoro.umihi.music.ui.screens.player.PlaybackProgress
 import ca.ilianokokoro.umihi.music.ui.theme.GoogleSansRounded
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.rounded.Cast
+import androidx.compose.material.icons.rounded.Lyrics
+
 @Composable
 fun PlayerControls(
     isPlaying: Boolean,
@@ -40,6 +45,7 @@ fun PlayerControls(
     onUpdateSeekBarHeldState: (isHeld: Boolean) -> Unit,
     onSeek: (location: Float) -> Unit,
     onOpenQueue: () -> Unit,
+    onToggleLyrics: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val player by PlayerManager.controllerState.collectAsState()
@@ -94,7 +100,7 @@ fun PlayerControls(
             )
         }
 
-        // Animated Playback Controls from PixelPlayer
+        // Animated Playback Controls from PixelPlayer (Slightly smaller, 76.dp height)
         AnimatedPlaybackControls(
             isPlayingProvider = { isPlaying },
             onPrevious = { PlayerManager.currentController?.seekToPrevious() },
@@ -106,6 +112,9 @@ fun PlayerControls(
                 }
             },
             onNext = { PlayerManager.currentController?.seekToNext() },
+            height = 76.dp,
+            playPauseIconSize = 30.dp,
+            iconSize = 26.dp,
             pressAnimationSpec = spring(
                 dampingRatio = Spring.DampingRatioNoBouncy,
                 stiffness = Spring.StiffnessMediumLow
@@ -113,13 +122,13 @@ fun PlayerControls(
             modifier = Modifier.padding(vertical = 12.dp)
         )
 
-        // Toggle Buttons Row (Shuffle, Repeat, Favorite, Queue)
+        // Toggle Buttons Row (Shuffle, Repeat, Favorite, Connect Device, Lyrics, Queue)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Queue button on the left or integrated
+            // Shuffle/Repeat/Favorite Toggle Bar
             BottomToggleRow(
                 modifier = Modifier.weight(1f),
                 isShuffleEnabled = isShuffleEnabled,
@@ -143,21 +152,74 @@ fun PlayerControls(
                 onFavoriteToggle = { isFavorite = !isFavorite }
             )
 
-            // Let's add a small Queue button right next to the BottomToggleRow or let the user open it via the bottom bar action
-            androidx.compose.material3.FilledIconButton(
-                onClick = onOpenQueue,
-                shape = RoundedCornerShape(60.dp),
-                colors = androidx.compose.material3.IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    contentColor = MaterialTheme.colorScheme.onSurface
-                ),
-                modifier = Modifier.size(56.dp)
+            // Right-aligned actions row (Connect Device, Lyrics, Queue)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                androidx.compose.material3.Icon(
-                    imageVector = androidx.compose.material.icons.Icons.AutoMirrored.Rounded.QueueMusic,
-                    contentDescription = "Open Queue",
-                    modifier = Modifier.size(24.dp)
-                )
+                // Connect Device Button
+                val context = androidx.compose.ui.platform.LocalContext.current
+                androidx.compose.material3.IconButton(
+                    onClick = {
+                        val intent = android.content.Intent().apply {
+                            action = "com.android.settings.PLAYBACK_MEDIA_OUTPUT"
+                            putExtra("package_name", context.packageName)
+                            flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        try {
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            try {
+                                val intentFallback = android.content.Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS).apply {
+                                    flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                                }
+                                context.startActivity(intentFallback)
+                            } catch (ex: Exception) {
+                                ex.printStackTrace()
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape)
+                ) {
+                    androidx.compose.material3.Icon(
+                        imageVector = Icons.Rounded.Cast,
+                        contentDescription = "Connect Device",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                // Lyrics Button
+                androidx.compose.material3.IconButton(
+                    onClick = onToggleLyrics,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape)
+                ) {
+                    androidx.compose.material3.Icon(
+                        imageVector = Icons.Rounded.Lyrics,
+                        contentDescription = "Lyrics",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                // Queue Button (Styled slightly upper/taller as per request or aligned nicely)
+                androidx.compose.material3.IconButton(
+                    onClick = onOpenQueue,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape)
+                ) {
+                    androidx.compose.material3.Icon(
+                        imageVector = androidx.compose.material.icons.Icons.AutoMirrored.Rounded.QueueMusic,
+                        contentDescription = "Open Queue",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
     }

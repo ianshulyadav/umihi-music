@@ -82,6 +82,15 @@ fun SettingsScreen(
         when (uiState.screenState) {
             is ScreenState.Success -> {
                 val state = uiState.screenState
+                val shapeFor = { index: Int, total: Int ->
+                    androidx.compose.foundation.shape.RoundedCornerShape(
+                        topStart = if (index == 0) 24.dp else 4.dp,
+                        topEnd = if (index == 0) 24.dp else 4.dp,
+                        bottomStart = if (index == total - 1) 24.dp else 4.dp,
+                        bottomEnd = if (index == total - 1) 24.dp else 4.dp
+                    )
+                }
+
                 SettingsSection(
                     title = stringResource(R.string.account)
                 ) {
@@ -90,6 +99,7 @@ fun SettingsScreen(
                             title = stringResource(R.string.log_out),
                             subtitle = stringResource(R.string.logged_in_message),
                             leadingIcon = Icons.AutoMirrored.Outlined.Logout,
+                            shape = shapeFor(0, 2),
                             onClick = settingsViewModel::logOut
                         )
                     } else {
@@ -97,14 +107,15 @@ fun SettingsScreen(
                             title = stringResource(R.string.log_in),
                             subtitle = stringResource(R.string.logged_out_message),
                             leadingIcon = Icons.AutoMirrored.Outlined.Login,
+                            shape = shapeFor(0, 2),
                             onClick = openAuthScreen
                         )
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
                     SettingsItem(
                         title = stringResource(R.string.clear_login_info),
                         subtitle = stringResource(R.string.clear_login_message),
                         leadingIcon = Icons.Outlined.Delete,
+                        shape = shapeFor(1, 2),
                         onClick = settingsViewModel::clearLogins
                     )
                 }
@@ -117,15 +128,15 @@ fun SettingsScreen(
                         subtitle = stringResource(R.string.show_podcast_playlist_description),
                         leadingIcon = Icons.AutoMirrored.Outlined.FeaturedPlayList,
                         value = uiState.screenState.settings.showPodcastPlaylist,
+                        shape = shapeFor(0, 2),
                         onToggle = { settingsViewModel.updatePodcastPlaylistVisibility(it) }
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    
                     BooleanSettingItem(
                         title = stringResource(R.string.keep_screen_on_title),
                         subtitle = stringResource(R.string.keep_screen_on_title_description),
                         leadingIcon = Icons.Outlined.StayCurrentPortrait,
                         value = uiState.screenState.settings.keepScreenOn,
+                        shape = shapeFor(1, 2),
                         onToggle = { settingsViewModel.updateKeepScreenOnSetting(it) }
                     )
                 }
@@ -139,6 +150,7 @@ fun SettingsScreen(
                         subtitle = stringResource(R.string.audio_offload_subtitle),
                         leadingIcon = Icons.Outlined.Memory,
                         value = uiState.screenState.settings.useAudioOffload,
+                        shape = shapeFor(0, 1),
                         onToggle = { settingsViewModel.updateAudioOffloadSetting(it) }
                     )
                 }
@@ -151,6 +163,7 @@ fun SettingsScreen(
                         title = stringResource(R.string.delete_downloads),
                         subtitle = stringResource(R.string.clear_data_message),
                         leadingIcon = Icons.Outlined.Delete,
+                        shape = shapeFor(0, 1),
                         onClick = {
                             settingsViewModel.updateShowDownloadDeleteConfirm(true)
                         }
@@ -167,9 +180,9 @@ fun SettingsScreen(
                             VersionManager.getVersionName()
                         ),
                         leadingIcon = Icons.Outlined.Update,
+                        shape = shapeFor(0, 2),
                         onClick = settingsViewModel::checkForUpdates
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
                     SettingsItem(
                         title = stringResource(R.string.change_update_channel),
                         subtitle = stringResource(
@@ -177,6 +190,7 @@ fun SettingsScreen(
                             state.settings.updateChannel
                         ),
                         leadingIcon = Icons.Outlined.SystemUpdate,
+                        shape = shapeFor(1, 2),
                         onClick = {
                             settingsViewModel.updateShowUpdateChannelDialog(true)
                         }

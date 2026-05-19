@@ -22,6 +22,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
 
 class PlayerViewModel(application: Application) :
     AndroidViewModel(application) {
@@ -29,6 +33,8 @@ class PlayerViewModel(application: Application) :
     val uiState = _uiState.asStateFlow()
 
     private var lastUpdatedSongIndex: Int = -1
+    private var lastLoadedLyricsSongId: String? = null
+    private var lyricsFetchJob: kotlinx.coroutines.Job? = null
 
     init {
         PlayerManager.currentController?.addListener(object : Player.Listener {
@@ -119,6 +125,7 @@ class PlayerViewModel(application: Application) :
         viewModelScope.launch {
             resetState()
             updateQueue()
+            currentSong?.let { loadLyricsForSong(it) }
         }
 
     }
@@ -250,6 +257,104 @@ class PlayerViewModel(application: Application) :
 
             state.copy(queue = updatedQueue)
         }
+    }
+
+    fun toggleLyricsVisibility(show: Boolean) {
+        _uiState.update { it.copy(showLyrics = show) }
+        if (show) {
+            val song = currentSong
+            if (song != null) {
+                loadLyricsForSong(song)
+            }
+        }
+    }
+
+    fun loadLyricsForSong(song: Song) {
+        if (_uiState.value.lyrics != null && lastLoadedLyricsSongId == song.uid) {
+            return
+        }
+
+        lyricsFetchJob?.cancel()
+        _uiState.update { it.copy(isLoadingLyrics = true, lyrics = null) }
+
+        lyricsFetchJob = viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val client = okhttp3.OkHttpClient()
+            try {
+                val artistEnc = java.net.URLEncoder.encode(song.artist ?: "", "UTF-8")
+                val titleEnc = java.net.URLEncoder.encode(song.title ?: "", "UTF-8")
+                val url = "https://lrclib.net/api/get?artist_name=$artistEnc&track_name=$titleEnc"
+
+                val request = okhttp3.Request.Builder().url(url).build()
+                val response = client.newCall(request).execute()
+                val responseBody = response.body?.string()
+
+                if (response.isSuccessful && !responseBody.isNullOrEmpty()) {
+                    val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+                    val jsonElement = json.parseToJsonElement(responseBody)
+                    val syncedLrc = jsonElement.jsonObject["syncedLyrics"]?.jsonPrimitive?.contentOrNull
+                    val plainLrc = jsonElement.jsonObject["plainLyrics"]?.jsonPrimitive?.contentOrNull
+
+                    val parsed = ca.ilianokokoro.umihi.music.ui.screens.player.lyrics.LyricsParser.parse(syncedLrc ?: plainLrc)
+                    _uiState.update { it.copy(lyrics = parsed, isLoadingLyrics = false) }
+                    lastLoadedLyricsSongId = song.uid
+                } else {
+                    val searchUrl = "https://lrclib.net/api/search?q=$artistEnc+$titleEnc"
+                    val searchRequest = okhttp3.Request.Builder().url(searchUrl).build()
+                    val searchResponse = client.newCall(searchRequest).execute()
+                    val searchResponseBody = searchResponse.body?.string()
+
+                    if (searchResponse.isSuccessful && !searchResponseBody.isNullOrEmpty()) {
+                        val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+                        val array = json.parseToJsonElement(searchResponseBody).jsonArray
+                        if (array.isNotEmpty()) {
+                            val firstResult = array[0].jsonObject
+                            val syncedLrc = firstResult["syncedLyrics"]?.jsonPrimitive?.contentOrNull
+                            val plainLrc = firstResult["plainLyrics"]?.jsonPrimitive?.contentOrNull
+
+                            val parsed = ca.ilianokokoro.umihi.music.ui.screens.player.lyrics.LyricsParser.parse(syncedLrc ?: plainLrc)
+                            _uiState.update { it.copy(lyrics = parsed, isLoadingLyrics = false) }
+                            lastLoadedLyricsSongId = song.uid
+                        } else {
+                            _uiState.update { it.copy(isLoadingLyrics = false, lyrics = null) }
+                        }
+                    } else {
+                        _uiState.update { it.copy(isLoadingLyrics = false, lyrics = null) }
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _uiState.update { it.copy(isLoadingLyrics = false, lyrics = null) }
+            }
+        }
+    }
+
+    private var sleepTimerJob: kotlinx.coroutines.Job? = null
+    private val _sleepTimerRemaining = MutableStateFlow<Long?>(null)
+    val sleepTimerRemaining = _sleepTimerRemaining.asStateFlow()
+
+    fun startSleepTimer(minutes: Int) {
+        sleepTimerJob?.cancel()
+        if (minutes <= 0) {
+            _sleepTimerRemaining.value = null
+            return
+        }
+        val durationMs = minutes * 60 * 1000L
+        val endTime = System.currentTimeMillis() + durationMs
+
+        sleepTimerJob = viewModelScope.launch {
+            while (System.currentTimeMillis() < endTime) {
+                val remaining = endTime - System.currentTimeMillis()
+                _sleepTimerRemaining.value = remaining
+                delay(1000L)
+            }
+            PlayerManager.currentController?.pause()
+            _sleepTimerRemaining.value = null
+        }
+    }
+
+    fun cancelSleepTimer() {
+        sleepTimerJob?.cancel()
+        _sleepTimerRemaining.value = null
     }
 
     companion object {

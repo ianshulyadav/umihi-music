@@ -29,19 +29,23 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import ca.ilianokokoro.umihi.music.ui.theme.GoogleSansRounded
 
+import androidx.compose.ui.graphics.Shape
+
 @Composable
 fun BooleanSettingItem(
     title: String,
     subtitle: String,
     leadingIcon: ImageVector,
     value: Boolean,
+    shape: Shape = RoundedCornerShape(24.dp),
     onToggle: (Boolean) -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
+            .clip(shape)
             .clickable(onClick = { onToggle(!value) }),
+        shape = shape,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer
         )

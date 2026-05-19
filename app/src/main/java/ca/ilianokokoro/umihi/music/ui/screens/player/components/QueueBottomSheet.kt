@@ -38,11 +38,18 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DragIndicator
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Remove
+import androidx.compose.material.icons.rounded.Shuffle
+import androidx.compose.material.icons.rounded.Repeat
+import androidx.compose.material.icons.rounded.RepeatOne
+import androidx.compose.material.icons.rounded.Snooze
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
@@ -80,6 +87,7 @@ import androidx.media3.common.C
 import ca.ilianokokoro.umihi.music.R
 import ca.ilianokokoro.umihi.music.core.Constants
 import ca.ilianokokoro.umihi.music.core.managers.PlayerManager
+import ca.ilianokokoro.umihi.music.core.helpers.ComposeHelper
 import ca.ilianokokoro.umihi.music.extensions.removeSongFromQueue
 import ca.ilianokokoro.umihi.music.models.Song
 import ca.ilianokokoro.umihi.music.ui.components.PlayingEqIcon
@@ -89,6 +97,9 @@ import ca.ilianokokoro.umihi.music.ui.theme.GoogleSansRounded
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
+import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.media3.common.Player
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -96,12 +107,14 @@ fun QueueBottomSheet(
     changeVisibility: (visible: Boolean) -> Unit,
     currentSong: Song?,
     songs: List<Song>,
+    playerViewModel: ca.ilianokokoro.umihi.music.ui.screens.player.PlayerViewModel,
     modifier: Modifier = Modifier
 ) {
     val hapticFeedback = LocalHapticFeedback.current
 
     var mutableSongList by remember { mutableStateOf(songs) }
     var startIndex by remember { mutableIntStateOf(0) }
+    var showTimerOptions by remember { mutableStateOf(false) }
 
     val lazyListState = rememberLazyListState()
     val reorderableLazyListState = rememberReorderableLazyListState(lazyListState) { from, to ->
@@ -119,6 +132,16 @@ fun QueueBottomSheet(
         }
     }
 
+    if (showTimerOptions) {
+        val sleepTimerRemaining by playerViewModel.sleepTimerRemaining.collectAsStateWithLifecycle()
+        TimerOptionsBottomSheet(
+            remainingMillis = sleepTimerRemaining,
+            onSetTimer = { mins -> playerViewModel.startSleepTimer(mins) },
+            onCancelTimer = { playerViewModel.cancelSleepTimer() },
+            onDismiss = { showTimerOptions = false }
+        )
+    }
+
     ModalBottomSheet(
         onDismissRequest = {
             changeVisibility(false)
@@ -126,171 +149,275 @@ fun QueueBottomSheet(
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
     ) {
-        Column(
-            modifier = modifier
+        Box(
+            modifier = Modifier
                 .fillMaxSize()
         ) {
-            // Next Up header styled like PixelPlayer
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = modifier
+                    .fillMaxSize()
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.playing_now),
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontFamily = GoogleSansRounded,
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = if (mutableSongList.isEmpty()) {
-                            stringResource(R.string.queue_empty)
-                        } else {
-                            val trackCount = mutableSongList.size
-                            "$trackCount ${if (trackCount == 1) "track" else "tracks"} lined up"
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                // Source pill/badge
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.88f)
+                // Next Up header styled like PixelPlayer
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.QueueMusic,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.playing_now),
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontFamily = GoogleSansRounded,
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Queue",
-                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
+                            text = if (mutableSongList.isEmpty()) {
+                                stringResource(R.string.queue_empty)
+                            } else {
+                                val trackCount = mutableSongList.size
+                                "$trackCount ${if (trackCount == 1) "track" else "tracks"} lined up"
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                }
-            }
 
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp)
-                    ),
-                state = lazyListState,
-                contentPadding = PaddingValues(
-                    start = 12.dp,
-                    top = 16.dp,
-                    end = 12.dp,
-                    bottom = Constants.Ui.SCROLLABLE_BOTTOM_PADDING
-                ),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                if (mutableSongList.isEmpty()) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            contentAlignment = Alignment.Center
+                    // Source pill/badge
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.88f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.QueueMusic,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                             Text(
-                                stringResource(R.string.queue_empty),
-                                textAlign = TextAlign.Center,
+                                text = "Queue",
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
-                } else {
-                    itemsIndexed(
-                        items = mutableSongList, key = { _, song -> song.uid }
-                    ) { index, song ->
-                        val isCurrentSong = currentSong == song
-                        val canReorder = index > mutableSongList.indexOf(currentSong)
+                }
 
-                        ReorderableItem(
-                            reorderableLazyListState,
-                            key = song.uid,
-                            enabled = canReorder
-                        ) { isDragging ->
-                            val scale by animateFloatAsState(
-                                targetValue = if (isDragging) 1.02f else 1f,
-                                animationSpec = spring(
-                                    dampingRatio = Spring.DampingRatioNoBouncy,
-                                    stiffness = Spring.StiffnessMediumLow
-                                ),
-                                label = "scale"
-                            )
-
-                            QueuePlaylistSongItem(
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp)
+                        ),
+                    state = lazyListState,
+                    contentPadding = PaddingValues(
+                        start = 12.dp,
+                        top = 16.dp,
+                        end = 12.dp,
+                        bottom = Constants.Ui.SCROLLABLE_BOTTOM_PADDING + 96.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (mutableSongList.isEmpty()) {
+                        item {
+                            Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .graphicsLayer {
-                                        scaleX = scale
-                                        scaleY = scale
-                                    },
-                                song = song,
-                                isCurrentSong = isCurrentSong,
-                                isDragging = isDragging,
-                                isDragHandleVisible = canReorder,
-                                onPress = {
-                                    PlayerManager.currentController?.seekTo(index, C.TIME_UNSET)
-                                },
-                                onRemove = {
-                                    mutableSongList = mutableSongList.toMutableList().apply {
-                                        removeAt(index)
-                                    }
-                                    PlayerManager.currentController?.removeSongFromQueue(song)
-                                },
-                                dragHandle = {
-                                    val view = LocalView.current
-                                    IconButton(
-                                        onClick = {},
-                                        modifier = Modifier
-                                            .draggableHandle(
-                                                onDragStarted = {
-                                                    startIndex = mutableSongList.indexOf(song)
-                                                    ViewCompat.performHapticFeedback(
-                                                        view,
-                                                        HapticFeedbackConstantsCompat.GESTURE_START
-                                                    )
-                                                },
-                                                onDragStopped = {
-                                                    ViewCompat.performHapticFeedback(
-                                                        view,
-                                                        HapticFeedbackConstantsCompat.GESTURE_END
-                                                    )
-                                                    PlayerManager.currentController?.moveMediaItem(
-                                                        startIndex,
-                                                        mutableSongList.indexOf(song)
-                                                    )
-                                                }
-                                            )
-                                            .size(40.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.DragIndicator,
-                                            contentDescription = stringResource(R.string.reorder),
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            )
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    stringResource(R.string.queue_empty),
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
+                    } else {
+                        itemsIndexed(
+                            items = mutableSongList, key = { _, song -> song.uid }
+                        ) { index, song ->
+                            val isCurrentSong = currentSong == song
+                            val canReorder = index > mutableSongList.indexOf(currentSong)
+
+                            ReorderableItem(
+                                reorderableLazyListState,
+                                key = song.uid,
+                                enabled = canReorder
+                            ) { isDragging ->
+                                val scale by animateFloatAsState(
+                                    targetValue = if (isDragging) 1.02f else 1f,
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioNoBouncy,
+                                        stiffness = Spring.StiffnessMediumLow
+                                    ),
+                                    label = "scale"
+                                )
+
+                                QueuePlaylistSongItem(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .graphicsLayer {
+                                            scaleX = scale
+                                            scaleY = scale
+                                        },
+                                    song = song,
+                                    isCurrentSong = isCurrentSong,
+                                    isDragging = isDragging,
+                                    isDragHandleVisible = canReorder,
+                                    onPress = {
+                                        PlayerManager.currentController?.seekTo(index, C.TIME_UNSET)
+                                    },
+                                    onRemove = {
+                                        mutableSongList = mutableSongList.toMutableList().apply {
+                                            removeAt(index)
+                                        }
+                                        PlayerManager.currentController?.removeSongFromQueue(song)
+                                    },
+                                    dragHandle = {
+                                        val view = LocalView.current
+                                        IconButton(
+                                            onClick = {},
+                                            modifier = Modifier
+                                                .draggableHandle(
+                                                    onDragStarted = {
+                                                        startIndex = mutableSongList.indexOf(song)
+                                                        ViewCompat.performHapticFeedback(
+                                                            view,
+                                                            HapticFeedbackConstantsCompat.GESTURE_START
+                                                        )
+                                                    },
+                                                    onDragStopped = {
+                                                        ViewCompat.performHapticFeedback(
+                                                            view,
+                                                            HapticFeedbackConstantsCompat.GESTURE_END
+                                                        )
+                                                        PlayerManager.currentController?.moveMediaItem(
+                                                            startIndex,
+                                                            mutableSongList.indexOf(song)
+                                                        )
+                                                    }
+                                                )
+                                                .size(40.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.DragIndicator,
+                                                contentDescription = stringResource(R.string.reorder),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Floating Controls Bar (Styled exactly like PixelPlayer)
+            val player by PlayerManager.controllerState.collectAsState()
+            val repeatMode = ComposeHelper.rememberRepeatMode(player)
+            val isShuffleEnabled = player?.shuffleModeEnabled ?: false
+            val sleepTimerRemaining by playerViewModel.sleepTimerRemaining.collectAsStateWithLifecycle()
+
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 28.dp)
+                    .height(64.dp),
+                shape = RoundedCornerShape(topStart = 28.dp, bottomEnd = 28.dp, topEnd = 8.dp, bottomStart = 8.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.95f),
+                shadowElevation = 8.dp
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    val activeColors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                    val inactiveColors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    // Shuffle Button
+                    FilledTonalIconButton(
+                        onClick = {
+                            PlayerManager.currentController?.let {
+                                it.shuffleModeEnabled = !it.shuffleModeEnabled
+                            }
+                        },
+                        colors = if (isShuffleEnabled) activeColors else inactiveColors,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Shuffle,
+                            contentDescription = "Toggle Shuffle"
+                        )
+                    }
+
+                    // Repeat Button
+                    FilledTonalIconButton(
+                        onClick = {
+                            PlayerManager.currentController?.let {
+                                it.repeatMode = when (it.repeatMode) {
+                                    Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                                    Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                                    Player.REPEAT_MODE_ONE -> Player.REPEAT_MODE_OFF
+                                    else -> Player.REPEAT_MODE_OFF
+                                }
+                            }
+                        },
+                        colors = if (repeatMode != Player.REPEAT_MODE_OFF) activeColors else inactiveColors,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        val repeatIcon = when (repeatMode) {
+                            Player.REPEAT_MODE_ONE -> Icons.Rounded.RepeatOne
+                            else -> Icons.Rounded.Repeat
+                        }
+                        Icon(
+                            imageVector = repeatIcon,
+                            contentDescription = "Toggle Repeat"
+                        )
+                    }
+
+                    // Sleep Timer Button
+                    FilledTonalIconButton(
+                        onClick = { showTimerOptions = true },
+                        colors = if (sleepTimerRemaining != null) activeColors else inactiveColors,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Snooze,
+                            contentDescription = "Sleep Timer"
+                        )
+                    }
+
+                    // Clear / Delete Queue Button
+                    FilledTonalIconButton(
+                        onClick = {
+                            PlayerManager.currentController?.clearMediaItems()
+                            mutableSongList = emptyList()
+                        },
+                        colors = inactiveColors,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Delete,
+                            contentDescription = "Clear Queue"
+                        )
                     }
                 }
             }
