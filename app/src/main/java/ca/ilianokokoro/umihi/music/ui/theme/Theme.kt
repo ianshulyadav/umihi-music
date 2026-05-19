@@ -2,6 +2,9 @@
 
 package ca.ilianokokoro.umihi.music.ui.theme
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -12,114 +15,133 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
+import androidx.core.graphics.ColorUtils
 
-private val lightScheme = lightColorScheme(
-    primary = primaryLight,
-    onPrimary = onPrimaryLight,
-    primaryContainer = primaryContainerLight,
-    onPrimaryContainer = onPrimaryContainerLight,
-    secondary = secondaryLight,
-    onSecondary = onSecondaryLight,
-    secondaryContainer = secondaryContainerLight,
-    onSecondaryContainer = onSecondaryContainerLight,
-    tertiary = tertiaryLight,
-    onTertiary = onTertiaryLight,
-    tertiaryContainer = tertiaryContainerLight,
-    onTertiaryContainer = onTertiaryContainerLight,
-    error = errorLight,
-    onError = onErrorLight,
-    errorContainer = errorContainerLight,
-    onErrorContainer = onErrorContainerLight,
-    background = backgroundLight,
-    onBackground = onBackgroundLight,
-    surface = surfaceLight,
-    onSurface = onSurfaceLight,
-    surfaceVariant = surfaceVariantLight,
-    onSurfaceVariant = onSurfaceVariantLight,
-    outline = outlineLight,
-    outlineVariant = outlineVariantLight,
-    scrim = scrimLight,
-    inverseSurface = inverseSurfaceLight,
-    inverseOnSurface = inverseOnSurfaceLight,
-    inversePrimary = inversePrimaryLight,
-    surfaceDim = surfaceDimLight,
-    surfaceBright = surfaceBrightLight,
-    surfaceContainerLowest = surfaceContainerLowestLight,
-    surfaceContainerLow = surfaceContainerLowLight,
-    surfaceContainer = surfaceContainerLight,
-    surfaceContainerHigh = surfaceContainerHighLight,
-    surfaceContainerHighest = surfaceContainerHighestLight,
-)
-private val darkScheme = darkColorScheme(
-    primary = primaryDark,
-    onPrimary = onPrimaryDark,
-    primaryContainer = primaryContainerDark,
-    onPrimaryContainer = onPrimaryContainerDark,
-    secondary = secondaryDark,
-    onSecondary = onSecondaryDark,
-    secondaryContainer = secondaryContainerDark,
-    onSecondaryContainer = onSecondaryContainerDark,
-    tertiary = tertiaryDark,
-    onTertiary = onTertiaryDark,
-    tertiaryContainer = tertiaryContainerDark,
-    onTertiaryContainer = onTertiaryContainerDark,
-    error = errorDark,
-    onError = onErrorDark,
-    errorContainer = errorContainerDark,
-    onErrorContainer = onErrorContainerDark,
-    background = backgroundDark,
-    onBackground = onBackgroundDark,
-    surface = surfaceDark,
-    onSurface = onSurfaceDark,
-    surfaceVariant = surfaceVariantDark,
-    onSurfaceVariant = onSurfaceVariantDark,
-    outline = outlineDark,
-    outlineVariant = outlineVariantDark,
-    scrim = scrimDark,
-    inverseSurface = inverseSurfaceDark,
-    inverseOnSurface = inverseOnSurfaceDark,
-    inversePrimary = inversePrimaryDark,
-    surfaceDim = surfaceDimDark,
-    surfaceBright = surfaceBrightDark,
-    surfaceContainerLowest = surfaceContainerLowestDark,
-    surfaceContainerLow = surfaceContainerLowDark,
-    surfaceContainer = surfaceContainerDark,
-    surfaceContainerHigh = surfaceContainerHighDark,
-    surfaceContainerHighest = surfaceContainerHighestDark,
+val LocalPixelPlayDarkTheme = staticCompositionLocalOf { false }
+val LocalMaterialTheme = staticCompositionLocalOf { DarkColorScheme }
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
+@Suppress("DEPRECATION")
+@Composable
+fun PixelPlayStatusBarStyle(
+    color: Color,
+    useDarkIcons: Boolean = ColorUtils.calculateLuminance(color.toArgb()) > 0.55,
+    navigationColor: Color? = null,
+    useDarkNavigationIcons: Boolean = navigationColor
+        ?.let { ColorUtils.calculateLuminance(it.toArgb()) > 0.55 }
+        ?: useDarkIcons
+) {
+    val view = LocalView.current
+    if (view.isInEditMode) return
+
+    val updateNavigationBar = navigationColor != null
+    SideEffect {
+        val window = view.context.findActivity()?.window ?: return@SideEffect
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isStatusBarContrastEnforced = false
+        }
+
+        WindowCompat.getInsetsController(window, view).run {
+            isAppearanceLightStatusBars = useDarkIcons
+
+            if (updateNavigationBar) {
+                window.navigationBarColor = android.graphics.Color.TRANSPARENT
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    window.isNavigationBarContrastEnforced = false
+                }
+                isAppearanceLightNavigationBars = useDarkNavigationIcons
+            }
+        }
+    }
+}
+
+val DarkColorScheme = darkColorScheme(
+    primary = PixelPlayPurplePrimary,
+    secondary = PixelPlayPink,
+    tertiary = PixelPlayOrange,
+    background = PixelPlayPurpleDark,
+    surface = PixelPlaySurface,
+    onPrimary = PixelPlayWhite,
+    onSecondary = PixelPlayWhite,
+    onTertiary = PixelPlayWhite,
+    onBackground = PixelPlayWhite,
+    onSurface = PixelPlayLightPurple,
+    error = Color(0xFFFF5252),
+    onError = PixelPlayWhite
 )
 
-@Immutable
-data class ColorFamily(
-    val color: Color,
-    val onColor: Color,
-    val colorContainer: Color,
-    val onColorContainer: Color
+val LightColorScheme = lightColorScheme(
+    primary = LightPrimary,
+    onPrimary = PixelPlayWhite,
+    primaryContainer = LightPrimaryContainer,
+    onPrimaryContainer = LightOnPrimaryContainer,
+    secondary = PixelPlayPink,
+    onSecondary = PixelPlayWhite,
+    secondaryContainer = PixelPlayPink.copy(alpha = 0.15f),
+    onSecondaryContainer = PixelPlayPink.copy(alpha = 0.85f),
+    tertiary = PixelPlayOrange,
+    onTertiary = PixelPlayBlack,
+    background = LightBackground,
+    onBackground = LightOnSurface,
+    surface = LightSurface,
+    onSurface = LightOnSurface,
+    surfaceVariant = LightSurfaceVariant,
+    onSurfaceVariant = LightOnSurfaceVariant,
+    outline = LightOutline,
+    outlineVariant = LightOutline.copy(alpha = 0.6f),
+    surfaceTint = LightPrimary,
+    error = Color(0xFFD32F2F),
+    onError = PixelPlayWhite
 )
 
 @Composable
 fun UmihiMusicTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
+    colorSchemePairOverride: ColorSchemePair? = null,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    val context = LocalContext.current
+    val finalColorScheme = when {
+        colorSchemePairOverride != null -> {
+            if (darkTheme) colorSchemePairOverride.dark else colorSchemePairOverride.light
         }
-
-        darkTheme -> darkScheme
-        else -> lightScheme
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            try {
+                if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            } catch (e: Exception) {
+                if (darkTheme) DarkColorScheme else LightColorScheme
+            }
+        }
+        darkTheme -> DarkColorScheme
+        else -> LightColorScheme
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = AppTypography,
-        motionScheme = MotionScheme.expressive(),
-        content = content,
+    PixelPlayStatusBarStyle(
+        color = finalColorScheme.background,
+        navigationColor = finalColorScheme.background
     )
-}
 
+    CompositionLocalProvider(LocalPixelPlayDarkTheme provides darkTheme) {
+        MaterialTheme(
+            colorScheme = finalColorScheme,
+            typography = AppTypography,
+            motionScheme = MotionScheme.expressive(),
+            content = content
+        )
+    }
+}

@@ -26,6 +26,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -81,6 +82,7 @@ fun PlayerScreen(
         ) {
             Thumbnail(
                 href = currentSong?.thumbnailHref.toString(),
+                isPlaying = uiState.isPlaying,
                 modifier = Modifier
                     .fillMaxHeight()
                     .weight(1f)
@@ -120,6 +122,7 @@ fun PlayerScreen(
 
             Thumbnail(
                 href = currentSong?.thumbnailHref.toString(),
+                isPlaying = uiState.isPlaying,
                 modifier = Modifier
                     .fillMaxHeight()
                     .weight(1f)
@@ -164,6 +167,7 @@ fun PlayerScreen(
 @Composable
 fun Thumbnail(
     href: String,
+    isPlaying: Boolean,
     modifier: Modifier = Modifier
 ) {
     BoxWithConstraints(
@@ -172,7 +176,7 @@ fun Thumbnail(
     ) {
         val size = minOf(maxWidth, maxHeight)
 
-        AnimatedContent(
+        androidx.compose.animation.AnimatedContent(
             targetState = href,
             transitionSpec = {
                 fadeIn(
@@ -184,8 +188,17 @@ fun Thumbnail(
                 )
             }
         ) { targetState ->
+            val cornerRadius by androidx.compose.animation.core.animateDpAsState(
+                targetValue = if (isPlaying) 32.dp else 16.dp,
+                animationSpec = androidx.compose.animation.core.spring(
+                    dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+                    stiffness = androidx.compose.animation.core.Spring.StiffnessLow
+                ),
+                label = "albumCornerRadius"
+            )
             SquareImage(
                 uri = targetState,
+                cornerRadius = cornerRadius,
                 modifier = Modifier.size(size)
             )
         }
@@ -201,12 +214,16 @@ fun SongInfo(song: Song?) {
     ) {
         Text(
             text = song?.title ?: "",
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontFamily = ca.ilianokokoro.umihi.music.ui.theme.GoogleSansRounded,
+                fontWeight = FontWeight.Bold
+            ),
             modifier = Modifier.basicMarquee()
         )
         Text(
             text = song?.artist ?: "",
             style = MaterialTheme.typography.bodyMedium.copy(
+                fontFamily = ca.ilianokokoro.umihi.music.ui.theme.GoogleSansRounded,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Bold
             ),

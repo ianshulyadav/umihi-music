@@ -29,6 +29,8 @@ customactivityoncrash = "2.4.0"
 workRuntimeKtx = "2.11.2"
 reorderable = "3.1.0"
 newpipeextractor = "v0.26.1"
+paletteKtx = "1.0.0"
+navigationCompose = "2.8.5" # standard stable version compatible with target SDK/Compose
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -74,6 +76,10 @@ customactivityoncrash = { module = "cat.ereza:customactivityoncrash", version.re
 androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workRuntimeKtx" }
 reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
 newpipeextractor = { module = "com.github.TeamNewPipe:NewPipeExtractor", version.ref = "newpipeextractor" }
+androidx-palette-ktx = { module = "androidx.palette:palette-ktx", version.ref = "paletteKtx" }
+androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
+material = { module = "com.google.android.material:material", version = "1.14.0" }
+androidx-ui-text-google-fonts = { group = "androidx.compose.ui", name = "ui-text-google-fonts" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

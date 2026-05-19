@@ -1,86 +1,215 @@
 package ca.ilianokokoro.umihi.music.ui.theme
 
 import androidx.compose.material3.Typography
-import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.googlefonts.Font
+import androidx.compose.ui.text.googlefonts.GoogleFont
+import androidx.compose.ui.text.style.TextGeometricTransform
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
 import ca.ilianokokoro.umihi.music.R
 
-val nunitoFontFamily = FontFamily(
-    Font(R.font.nunito_extralight, FontWeight.ExtraLight, FontStyle.Normal),
-    Font(R.font.nunito_light, FontWeight.Light, FontStyle.Normal),
-    Font(R.font.nunito, FontWeight.Normal, FontStyle.Normal),
-    Font(R.font.nunito_medium, FontWeight.Medium, FontStyle.Normal),
-    Font(R.font.nunito_semibold, FontWeight.SemiBold, FontStyle.Normal),
-    Font(R.font.nunito_bold, FontWeight.Bold, FontStyle.Normal),
-    Font(R.font.nunito_extrabold, FontWeight.ExtraBold, FontStyle.Normal),
-    Font(R.font.nunito_black, FontWeight.Black, FontStyle.Normal),
+private val montserrat = GoogleFont("Montserrat")
+private val provider = GoogleFont.Provider(
+    providerAuthority = "com.google.android.gms.fonts",
+    providerPackage   = "com.google.android.gms",
+    certificates      = R.array.com_google_android_gms_fonts_certs
 )
-private val defaultTypography = Typography()
+
+val MontserratFamily = FontFamily(
+    Font(googleFont = montserrat, fontProvider = provider, weight = FontWeight.Black),
+    Font(googleFont = montserrat, fontProvider = provider, weight = FontWeight.ExtraBold),
+    Font(googleFont = montserrat, fontProvider = provider, weight = FontWeight.Bold),
+    Font(googleFont = montserrat, fontProvider = provider, weight = FontWeight.SemiBold),
+    Font(googleFont = montserrat, fontProvider = provider, weight = FontWeight.Medium),
+    Font(googleFont = montserrat, fontProvider = provider, weight = FontWeight.Normal),
+    Font(googleFont = montserrat, fontProvider = provider, weight = FontWeight.Light),
+)
+
+val ExpTitleTypography = Typography(
+    displayLarge = TextStyle(
+        fontFamily = MontserratFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 60.sp,
+        textGeometricTransform = TextGeometricTransform(scaleX = 1.5f),
+        letterSpacing = (-0.02).em,
+        lineHeight = 0.95.em,
+        platformStyle = PlatformTextStyle(includeFontPadding = false)
+    ),
+    displayMedium = TextStyle(
+        fontFamily = MontserratFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 50.sp,
+        letterSpacing = (-0.02).em,
+        lineHeight = 0.95.em,
+        platformStyle = PlatformTextStyle(includeFontPadding = false)
+    ),
+    titleMedium = TextStyle(
+        fontFamily = MontserratFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 32.sp,
+        textGeometricTransform = TextGeometricTransform(scaleX = 1.3f),
+        letterSpacing = (-0.02).em,
+        lineHeight = 0.95.em,
+        platformStyle = PlatformTextStyle(includeFontPadding = false)
+    )
+)
+
+private const val GoogleSansFlexRond = 100f
+
+@OptIn(ExperimentalTextApi::class)
+val GoogleSansRounded = FontFamily(
+    androidx.compose.ui.text.font.Font(
+        resId = R.font.gflex_variable,
+        weight = FontWeight.Light,
+        variationSettings = FontVariation.Settings(
+            FontVariation.weight(FontWeight.Light.weight),
+            FontVariation.Setting("ROND", GoogleSansFlexRond)
+        )
+    ),
+    androidx.compose.ui.text.font.Font(
+        resId = R.font.gflex_variable,
+        weight = FontWeight.Normal,
+        variationSettings = FontVariation.Settings(
+            FontVariation.weight(FontWeight.Normal.weight),
+            FontVariation.Setting("ROND", GoogleSansFlexRond)
+        )
+    ),
+    androidx.compose.ui.text.font.Font(
+        resId = R.font.gflex_variable,
+        weight = FontWeight.Medium,
+        variationSettings = FontVariation.Settings(
+            FontVariation.weight(FontWeight.Medium.weight),
+            FontVariation.Setting("ROND", GoogleSansFlexRond)
+        )
+    ),
+    androidx.compose.ui.text.font.Font(
+        resId = R.font.gflex_variable,
+        weight = FontWeight.SemiBold,
+        variationSettings = FontVariation.Settings(
+            FontVariation.weight(FontWeight.SemiBold.weight),
+            FontVariation.Setting("ROND", GoogleSansFlexRond)
+        )
+    ),
+    androidx.compose.ui.text.font.Font(
+        resId = R.font.gflex_variable,
+        weight = FontWeight.Bold,
+        variationSettings = FontVariation.Settings(
+            FontVariation.weight(FontWeight.Bold.weight),
+            FontVariation.Setting("ROND", GoogleSansFlexRond)
+        )
+    ),
+)
+
 val AppTypography = Typography(
-    displayLarge = defaultTypography.displayLarge.copy(
-        fontFamily = nunitoFontFamily,
-        fontWeight = FontWeight.Bold
+    displayLarge = TextStyle(
+        fontFamily = GoogleSansRounded,
+        fontWeight = FontWeight.Bold,
+        fontSize = 48.sp,
+        lineHeight = 56.sp,
+        letterSpacing = 0.sp
     ),
-    displayMedium = defaultTypography.displayMedium.copy(
-        fontFamily = nunitoFontFamily,
-        fontWeight = FontWeight.Bold
+    displayMedium = TextStyle(
+        fontFamily = GoogleSansRounded,
+        fontWeight = FontWeight.Bold,
+        fontSize = 36.sp,
+        lineHeight = 44.sp,
+        letterSpacing = 0.sp
     ),
-    displaySmall = defaultTypography.displaySmall.copy(
-        fontFamily = nunitoFontFamily,
-        fontWeight = FontWeight.Bold
+    displaySmall = TextStyle(
+        fontFamily = GoogleSansRounded,
+        fontWeight = FontWeight.Normal,
+        fontSize = 30.sp,
+        lineHeight = 38.sp,
+        letterSpacing = 0.sp
     ),
-
-    headlineLarge = defaultTypography.headlineLarge.copy(
-        fontFamily = nunitoFontFamily,
-        fontWeight = FontWeight.Bold
+    headlineLarge = TextStyle(
+        fontFamily = GoogleSansRounded,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 32.sp,
+        lineHeight = 40.sp,
+        letterSpacing = 0.sp
     ),
-    headlineMedium = defaultTypography.headlineMedium.copy(
-        fontFamily = nunitoFontFamily,
-        fontWeight = FontWeight.Bold
+    headlineMedium = TextStyle(
+        fontFamily = GoogleSansRounded,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 28.sp,
+        lineHeight = 36.sp,
+        letterSpacing = 0.sp
     ),
-    headlineSmall = defaultTypography.headlineSmall.copy(
-        fontFamily = nunitoFontFamily,
-        fontWeight = FontWeight.Bold
+    headlineSmall = TextStyle(
+        fontFamily = GoogleSansRounded,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 24.sp,
+        lineHeight = 32.sp,
+        letterSpacing = 0.sp
     ),
-
-    titleLarge = defaultTypography.titleLarge.copy(
-        fontFamily = nunitoFontFamily,
-        fontWeight = FontWeight.Bold
+    titleLarge = TextStyle(
+        fontFamily = GoogleSansRounded,
+        fontWeight = FontWeight.Normal,
+        fontSize = 22.sp,
+        lineHeight = 28.sp,
+        letterSpacing = 0.sp
     ),
-    titleMedium = defaultTypography.titleMedium.copy(
-        fontFamily = nunitoFontFamily,
-        fontWeight = FontWeight.Bold
+    titleMedium = TextStyle(
+        fontFamily = GoogleSansRounded,
+        fontWeight = FontWeight.Medium,
+        fontSize = 18.sp,
+        lineHeight = 24.sp,
+        letterSpacing = 0.15.sp
     ),
-    titleSmall = defaultTypography.titleSmall.copy(
-        fontFamily = nunitoFontFamily,
-        fontWeight = FontWeight.Bold
+    titleSmall = TextStyle(
+        fontFamily = GoogleSansRounded,
+        fontWeight = FontWeight.Medium,
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
+        letterSpacing = 0.1.sp
     ),
-
-    bodyLarge = defaultTypography.bodyLarge.copy(
-        fontFamily = nunitoFontFamily,
-        fontWeight = FontWeight.Bold
+    bodyLarge = TextStyle(
+        fontFamily = GoogleSansRounded,
+        fontWeight = FontWeight.Normal,
+        fontSize = 16.sp,
+        lineHeight = 24.sp,
+        letterSpacing = 0.5.sp
     ),
-    bodyMedium = defaultTypography.bodyMedium.copy(
-        fontFamily = nunitoFontFamily,
-        fontWeight = FontWeight.Bold
+    bodyMedium = TextStyle(
+        fontFamily = GoogleSansRounded,
+        fontWeight = FontWeight.Normal,
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
+        letterSpacing = 0.25.sp
     ),
-    bodySmall = defaultTypography.bodySmall.copy(
-        fontFamily = nunitoFontFamily,
-        fontWeight = FontWeight.Bold
+    bodySmall = TextStyle(
+        fontFamily = GoogleSansRounded,
+        fontWeight = FontWeight.Normal,
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.4.sp
     ),
-
-    labelLarge = defaultTypography.labelLarge.copy(
-        fontFamily = nunitoFontFamily,
-        fontWeight = FontWeight.Bold
+    labelLarge = TextStyle(
+        fontFamily = GoogleSansRounded,
+        fontWeight = FontWeight.Medium,
+        fontSize = 16.sp,
+        lineHeight = 20.sp,
+        letterSpacing = 0.1.sp
     ),
-    labelMedium = defaultTypography.labelMedium.copy(
-        fontFamily = nunitoFontFamily,
-        fontWeight = FontWeight.Bold
+    labelMedium = TextStyle(
+        fontFamily = GoogleSansRounded,
+        fontWeight = FontWeight.Medium,
+        fontSize = 14.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.5.sp
     ),
-    labelSmall = defaultTypography.labelSmall.copy(
-        fontFamily = nunitoFontFamily,
-        fontWeight = FontWeight.Bold
+    labelSmall = TextStyle(
+        fontFamily = GoogleSansRounded,
+        fontWeight = FontWeight.Medium,
+        fontSize = 11.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.5.sp
     )
 )

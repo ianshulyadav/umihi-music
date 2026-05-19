@@ -10,7 +10,14 @@ val versionPatch = 0
 val beta: Boolean = (project.findProperty("beta") as String?)?.toBoolean() ?: true
 val keystorePropertiesFile: File = rootProject.file("keystore.properties")
 val keystoreProperties = Properties()
-keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+} else {
+    keystoreProperties["keyAlias"] = "dummy"
+    keystoreProperties["keyPassword"] = "dummy"
+    keystoreProperties["storeFile"] = "dummy"
+    keystoreProperties["storePassword"] = "dummy"
+}
 
 plugins {
     alias(libs.plugins.android.application)
@@ -113,6 +120,8 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.material3)
+    implementation(libs.material)
+    implementation(libs.androidx.ui.text.google.fonts)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -124,10 +133,14 @@ dependencies {
     // Desugaring
     coreLibraryDesugaring(libs.desugar.jdk.libs.nio)
 
-    // Navigation 3
+    // Navigation Compose
+    implementation(libs.androidx.navigation.compose)
     implementation(libs.nav3.runtime)
     implementation(libs.nav3.ui)
     implementation(libs.androidx.lifecycle.viewmodel.nav3)
+
+    // Palette
+    implementation(libs.androidx.palette.ktx)
 
     // Splash Screen
     implementation(libs.androidx.core.splashscreen)
