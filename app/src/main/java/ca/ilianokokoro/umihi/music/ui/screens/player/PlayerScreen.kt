@@ -178,12 +178,12 @@ fun PlayerScreen(
             Modifier.sharedBounds(
                 sharedContentState = rememberSharedContentState(key = "player_container"),
                 animatedVisibilityScope = animatedVisibilityScope,
-                enter = fadeIn(tween(350)),
-                exit = fadeOut(tween(350)),
+                enter = fadeIn(tween(300)),
+                exit = fadeOut(tween(300)),
                 boundsTransform = { _, _ ->
                     spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMediumLow
                     )
                 },
                 resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
@@ -197,10 +197,20 @@ fun PlayerScreen(
         modifier = modifier
             .fillMaxSize()
             .then(containerModifier)
+            .background(
+                androidx.compose.ui.graphics.Brush.verticalGradient(
+                    colors = listOf(
+                        primaryContainer.copy(alpha = 0.35f),
+                        surface.copy(alpha = 0.95f),
+                        background
+                    )
+                )
+            )
             .graphicsLayer {
                 scaleX = containerScale
                 scaleY = containerScale
                 translationY = dragOffsetY.value
+                alpha = containerAlpha
                 clip = true
                 shape = RoundedCornerShape(containerCornerRadius)
             }
@@ -216,7 +226,7 @@ fun PlayerScreen(
                                 dragOffsetY.animateTo(
                                     0f,
                                     spring(
-                                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                                        dampingRatio = Spring.DampingRatioNoBouncy,
                                         stiffness = Spring.StiffnessLow
                                     )
                                 )
@@ -242,42 +252,20 @@ fun PlayerScreen(
                 )
             }
     ) {
-        // Blurred Album Artwork Background with Pastel Gradient Tint
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer { alpha = containerAlpha * bgFadeProgress }
-        ) {
-            // Pastel Gradient
+        // Blur Art Background
+        if (currentSong != null) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        androidx.compose.ui.graphics.Brush.verticalGradient(
-                            colors = listOf(
-                                primaryContainer.copy(alpha = 0.35f),
-                                surface.copy(alpha = 0.95f),
-                                background
-                            )
-                        )
-                    )
-            )
-
-            // Blur Art Background
-            if (currentSong != null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer { alpha = 0.22f }
-                        .blur(50.dp, edgeTreatment = androidx.compose.ui.draw.BlurredEdgeTreatment.Unbounded)
-                ) {
-                    ca.ilianokokoro.umihi.music.ui.components.SmartImage(
-                        model = currentSong.thumbnailPath ?: currentSong.thumbnailHref,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                    )
-                }
+                    .graphicsLayer { alpha = 0.22f * bgFadeProgress }
+                    .blur(50.dp, edgeTreatment = androidx.compose.ui.draw.BlurredEdgeTreatment.Unbounded)
+            ) {
+                ca.ilianokokoro.umihi.music.ui.components.SmartImage(
+                    model = currentSong.thumbnailPath ?: currentSong.thumbnailHref,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                )
             }
         }
 
@@ -299,15 +287,20 @@ fun PlayerScreen(
                     }
                 )
 
-                Thumbnail(
-                    href = currentSong?.thumbnailHref.toString(),
-                    isPlaying = uiState.isPlaying,
+                Box(
                     modifier = Modifier
                         .fillMaxHeight()
-                        .weight(1f),
-                    sharedTransitionScope = sharedTransitionScope,
-                    animatedVisibilityScope = animatedVisibilityScope
-                )
+                        .weight(1f)
+                        .graphicsLayer { alpha = contentAlpha },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Thumbnail(
+                        href = currentSong?.thumbnailHref.toString(),
+                        isPlaying = uiState.isPlaying,
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedVisibilityScope = animatedVisibilityScope
+                    )
+                }
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -367,15 +360,20 @@ fun PlayerScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    Thumbnail(
-                        href = currentSong?.thumbnailHref.toString(),
-                        isPlaying = uiState.isPlaying,
+                    Box(
                         modifier = Modifier
                             .fillMaxHeight()
-                            .weight(1f),
-                        sharedTransitionScope = sharedTransitionScope,
-                        animatedVisibilityScope = animatedVisibilityScope
-                    )
+                            .weight(1f)
+                            .graphicsLayer { alpha = contentAlpha },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Thumbnail(
+                            href = currentSong?.thumbnailHref.toString(),
+                            isPlaying = uiState.isPlaying,
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = animatedVisibilityScope
+                        )
+                    }
 
                     Column(
                         modifier = Modifier

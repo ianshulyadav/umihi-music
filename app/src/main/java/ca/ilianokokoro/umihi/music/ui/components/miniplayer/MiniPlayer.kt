@@ -6,6 +6,9 @@ import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
@@ -72,8 +75,14 @@ fun MiniPlayer(
                 .sharedBounds(
                     sharedContentState = rememberSharedContentState(key = "player_container"),
                     animatedVisibilityScope = animatedVisibilityScope,
-                    enter = fadeIn(),
-                    exit = fadeOut(),
+                    enter = fadeIn(tween(300)),
+                    exit = fadeOut(tween(300)),
+                    boundsTransform = { _, _ ->
+                        spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        )
+                    },
                     resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
                 )
                 .fillMaxWidth()
