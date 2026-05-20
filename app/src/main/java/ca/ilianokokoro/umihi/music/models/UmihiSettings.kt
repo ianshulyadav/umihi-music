@@ -16,5 +16,7 @@ data class UmihiSettings(
     val lyricsAutoHideDelay: Int = 4,
     val showPlayerFileInfo: Boolean = false,
     val playerThemePreference: String = "ALBUM_ART",
-    val colorPalettePreference: String = "SAGE"
+    val colorPalettePreference: String = "SAGE",
+    val lyricsMiniPlayerPosition: String = "TOP",
+    val lyricsMiniPlayerAlignment: String = "LEFT"
 )

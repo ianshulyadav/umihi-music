@@ -48,6 +48,8 @@ class DatastoreRepository(private val context: Context) {
         val SHOW_PLAYER_FILE_INFO = booleanPreferencesKey("show_player_file_info")
         val PLAYER_THEME_PREFERENCE = stringPreferencesKey("player_theme_preference")
         val COLOR_PALETTE_PREFERENCE = stringPreferencesKey("color_palette_preference")
+        val LYRICS_MINIPLAYER_POSITION = stringPreferencesKey("lyrics_miniplayer_position")
+        val LYRICS_MINIPLAYER_ALIGNMENT = stringPreferencesKey("lyrics_miniplayer_alignment")
     }
 
     suspend fun <T> save(key: Preferences.Key<T>, value: T) {
@@ -70,6 +72,8 @@ class DatastoreRepository(private val context: Context) {
         val showPlayerFileInfo = it[SHOW_PLAYER_FILE_INFO] ?: false
         val playerThemePreference = it[PLAYER_THEME_PREFERENCE] ?: "ALBUM_ART"
         val colorPalettePreference = it[COLOR_PALETTE_PREFERENCE] ?: "SAGE"
+        val lyricsMiniPlayerPosition = it[LYRICS_MINIPLAYER_POSITION] ?: "TOP"
+        val lyricsMiniPlayerAlignment = it[LYRICS_MINIPLAYER_ALIGNMENT] ?: "LEFT"
         val cookies = cookies.first()
         val dataSyncId = dataSyncId.first()
 
@@ -87,7 +91,9 @@ class DatastoreRepository(private val context: Context) {
             lyricsAutoHideDelay = lyricsAutoHideDelay,
             showPlayerFileInfo = showPlayerFileInfo,
             playerThemePreference = playerThemePreference,
-            colorPalettePreference = colorPalettePreference
+            colorPalettePreference = colorPalettePreference,
+            lyricsMiniPlayerPosition = lyricsMiniPlayerPosition,
+            lyricsMiniPlayerAlignment = lyricsMiniPlayerAlignment
         )
     }
 

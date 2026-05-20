@@ -1,7 +1,7 @@
 package ca.ilianokokoro.umihi.music.ui.screens.player.components
 
 import android.app.Activity
-import androidx.compose.animation.AnimatedContent
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
@@ -9,13 +9,13 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,7 +24,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
@@ -39,7 +38,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -49,7 +47,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.util.lerp
 import ca.ilianokokoro.umihi.music.core.managers.PlayerManager
 import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository
 import ca.ilianokokoro.umihi.music.ui.components.SmartImage
@@ -68,6 +65,7 @@ fun LyricsSheet(
     modifier: Modifier = Modifier
 ) {
     val uiState by playerViewModel.uiState.collectAsState()
+    BackHandler { onClose() }
     val currentSong = uiState.queue.getOrNull(uiState.currentIndex)
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -471,118 +469,249 @@ fun LyricsSheet(
             }
         }
 
-        // --- PERMANENTLY VISIBLE FLOATING CAPSULE MINI-PLAYER ---
-        Row(
+        // --- IMMERSIVE TOP GRADIENT SCRIM ---
+        Box(
             modifier = Modifier
-                .statusBarsPadding()
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .height(130.dp)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            containerColor,
+                            containerColor.copy(alpha = 0.6f),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
+
+        // --- PERMANENTLY VISIBLE FLOATING CAPSULE MINI-PLAYER ---
+        Box(
+            modifier = Modifier
+                .align(if (settings.lyricsMiniPlayerPosition == "BOTTOM") Alignment.BottomCenter else Alignment.TopCenter)
+                .then(
+                    if (settings.lyricsMiniPlayerPosition == "BOTTOM") {
+                        Modifier.navigationBarsPadding().padding(bottom = 116.dp)
+                    } else {
+                        Modifier.statusBarsPadding()
+                    }
+                )
                 .padding(horizontal = 16.dp, vertical = 12.dp)
                 .fillMaxWidth()
-                .shadow(elevation = 6.dp, shape = RoundedCornerShape(32.dp))
+                .shadow(elevation = 8.dp, shape = RoundedCornerShape(32.dp))
                 .background(
                     color = Color.White,
                     shape = RoundedCornerShape(32.dp)
                 )
-                .padding(horizontal = 8.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .border(BorderStroke(1.dp, Color.Black.copy(alpha = 0.08f)), RoundedCornerShape(32.dp))
+                .padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
-            // Close Button
-            IconButton(
-                onClick = onClose,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.KeyboardArrowDown,
-                    contentDescription = "Minimize Lyrics",
-                    tint = Color.Black
-                )
-            }
-
-            // Center Content (Tap CD to Play/Pause)
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                val currentRotation = remember { androidx.compose.animation.core.Animatable(0f) }
-                LaunchedEffect(uiState.isPlaying) {
-                    if (uiState.isPlaying) {
-                        while (true) {
-                            currentRotation.animateTo(
-                                targetValue = currentRotation.value + 360f,
-                                animationSpec = tween(10000, easing = LinearEasing)
-                            )
+            if (settings.lyricsMiniPlayerAlignment == "LEFT") {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // CD artwork (Rotating)
+                    val currentRotation = remember { androidx.compose.animation.core.Animatable(0f) }
+                    LaunchedEffect(uiState.isPlaying) {
+                        if (uiState.isPlaying) {
+                            while (true) {
+                                currentRotation.animateTo(
+                                    targetValue = currentRotation.value + 360f,
+                                    animationSpec = tween(10000, easing = LinearEasing)
+                                )
+                            }
+                        } else {
+                            currentRotation.stop()
                         }
-                    } else {
-                        currentRotation.stop()
+                    }
+
+                    SmartImage(
+                        model = currentSong?.thumbnailPath ?: currentSong?.thumbnailHref,
+                        contentDescription = "Cover Art CD",
+                        modifier = Modifier
+                            .size(48.dp)
+                            .graphicsLayer {
+                                rotationZ = currentRotation.value % 360f
+                            }
+                            .clip(CircleShape)
+                            .clickable {
+                                resetInteraction()
+                                val controller = PlayerManager.currentController
+                                if (uiState.isPlaying) controller?.pause() else controller?.play()
+                            },
+                        contentScale = ContentScale.Crop
+                    )
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    // Title/Artist details column (start-aligned)
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = currentSong?.title ?: "Unknown Title",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontFamily = GoogleSansRounded,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = Color.Black
+                        )
+                        Text(
+                            text = currentSong?.artist ?: "Unknown Artist",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontFamily = GoogleSansRounded
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = Color.Black.copy(alpha = 0.6f)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // Equalizer
+                    PlayingEqIcon(
+                        modifier = Modifier.size(width = 14.dp, height = 12.dp),
+                        color = accentColor,
+                        isPlaying = uiState.isPlaying
+                    )
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    // Settings Button
+                    IconButton(
+                        onClick = { showSettingsDialog = true },
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.MoreVert,
+                            contentDescription = "Customization Settings",
+                            tint = Color.Black
+                        )
+                    }
+
+                    // Minimize Button
+                    IconButton(
+                        onClick = onClose,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.KeyboardArrowDown,
+                            contentDescription = "Minimize Lyrics",
+                            tint = Color.Black
+                        )
                     }
                 }
-
-                SmartImage(
-                    model = currentSong?.thumbnailPath ?: currentSong?.thumbnailHref,
-                    contentDescription = "Cover Art CD",
-                    modifier = Modifier
-                        .size(36.dp)
-                        .graphicsLayer {
-                            rotationZ = currentRotation.value % 360f
-                        }
-                        .clip(CircleShape)
-                        .clickable {
-                            resetInteraction()
-                            val controller = PlayerManager.currentController
-                            if (uiState.isPlaying) controller?.pause() else controller?.play()
-                        },
-                    contentScale = ContentScale.Crop
-                )
-
-                Spacer(modifier = Modifier.width(10.dp))
-
-                Column(
-                    modifier = Modifier.weight(1f, fill = false),
-                    verticalArrangement = Arrangement.Center
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = currentSong?.title ?: "Unknown Title",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontFamily = GoogleSansRounded,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        color = Color.Black
-                    )
-                    Text(
-                        text = currentSong?.artist ?: "Unknown Artist",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontFamily = GoogleSansRounded
-                        ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        color = Color.Black.copy(alpha = 0.6f)
-                    )
+                    // Close Button (leftmost)
+                    IconButton(
+                        onClick = onClose,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.KeyboardArrowDown,
+                            contentDescription = "Minimize Lyrics",
+                            tint = Color.Black
+                        )
+                    }
+
+                    // Center Content (CD + Text + EQ)
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        val currentRotation = remember { androidx.compose.animation.core.Animatable(0f) }
+                        LaunchedEffect(uiState.isPlaying) {
+                            if (uiState.isPlaying) {
+                                while (true) {
+                                    currentRotation.animateTo(
+                                        targetValue = currentRotation.value + 360f,
+                                        animationSpec = tween(10000, easing = LinearEasing)
+                                    )
+                                }
+                            } else {
+                                currentRotation.stop()
+                            }
+                        }
+
+                        SmartImage(
+                            model = currentSong?.thumbnailPath ?: currentSong?.thumbnailHref,
+                            contentDescription = "Cover Art CD",
+                            modifier = Modifier
+                                .size(48.dp)
+                                .graphicsLayer {
+                                    rotationZ = currentRotation.value % 360f
+                                }
+                                .clip(CircleShape)
+                                .clickable {
+                                    resetInteraction()
+                                    val controller = PlayerManager.currentController
+                                    if (uiState.isPlaying) controller?.pause() else controller?.play()
+                                },
+                            contentScale = ContentScale.Crop
+                        )
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column(
+                            modifier = Modifier.weight(1f, fill = false),
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = currentSong?.title ?: "Unknown Title",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontFamily = GoogleSansRounded,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                color = Color.Black
+                            )
+                            Text(
+                                text = currentSong?.artist ?: "Unknown Artist",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontFamily = GoogleSansRounded
+                                ),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                color = Color.Black.copy(alpha = 0.6f)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        PlayingEqIcon(
+                            modifier = Modifier.size(width = 14.dp, height = 12.dp),
+                            color = accentColor,
+                            isPlaying = uiState.isPlaying
+                        )
+                    }
+
+                    // Settings button (rightmost)
+                    IconButton(
+                        onClick = { showSettingsDialog = true },
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.MoreVert,
+                            contentDescription = "Customization Settings",
+                            tint = Color.Black
+                        )
+                    }
                 }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                PlayingEqIcon(
-                    modifier = Modifier.size(width = 14.dp, height = 12.dp),
-                    color = accentColor,
-                    isPlaying = uiState.isPlaying
-                )
-            }
-
-            // Settings button (Opens custom customization dialog)
-            IconButton(
-                onClick = { showSettingsDialog = true },
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.MoreVert,
-                    contentDescription = "Customization Settings",
-                    tint = Color.Black
-                )
             }
         }
 
@@ -600,9 +729,10 @@ fun LyricsSheet(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(32.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.85f)
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -639,7 +769,8 @@ fun LyricsSheet(
                             onClick = onClose,
                             modifier = Modifier
                                 .size(44.dp)
-                                .background(onBackgroundColor.copy(alpha = 0.08f), CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
+                                .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)), CircleShape)
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Close,
@@ -656,7 +787,7 @@ fun LyricsSheet(
                         )
                         Box(
                             modifier = Modifier
-                                .size(44.dp)
+                                .size(48.dp)
                                 .clip(RoundedCornerShape(playPauseRadius))
                                 .background(accentColor)
                                 .clickable {
@@ -670,7 +801,7 @@ fun LyricsSheet(
                                 imageVector = if (uiState.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                                 contentDescription = "Play/Pause",
                                 tint = onAccentColor,
-                                modifier = Modifier.size(22.dp)
+                                modifier = Modifier.size(24.dp)
                             )
                         }
 
@@ -694,7 +825,8 @@ fun LyricsSheet(
                         Row(
                             modifier = Modifier
                                 .height(38.dp)
-                                .background(onBackgroundColor.copy(alpha = 0.08f), CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape)
+                                .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)), CircleShape)
                                 .padding(2.dp),
                             horizontalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
@@ -976,6 +1108,37 @@ fun LyricsSettingsDialog(
                             onCheckedChange = { checked ->
                                 scope.launch {
                                     settingsRepository.save(DatastoreRepository.PreferenceKeys.SHOW_PLAYER_FILE_INFO, checked)
+                                }
+                            }
+                        )
+                    }
+                }
+
+                // Section: Floating Mini-Player
+                item {
+                    SettingsSectionTitle(title = "Floating Mini-Player")
+                }
+                item {
+                    SettingsCardGroup {
+                        // Position Toggle
+                        SettingsRowToggle(
+                            title = "Position",
+                            options = listOf("TOP" to "Top", "BOTTOM" to "Bottom"),
+                            selected = settings.lyricsMiniPlayerPosition,
+                            onSelect = { pos ->
+                                scope.launch {
+                                    settingsRepository.save(DatastoreRepository.PreferenceKeys.LYRICS_MINIPLAYER_POSITION, pos)
+                                }
+                            }
+                        )
+                        // Alignment Toggle
+                        SettingsRowToggle(
+                            title = "Alignment",
+                            options = listOf("LEFT" to "Left", "CENTER" to "Center"),
+                            selected = settings.lyricsMiniPlayerAlignment,
+                            onSelect = { align ->
+                                scope.launch {
+                                    settingsRepository.save(DatastoreRepository.PreferenceKeys.LYRICS_MINIPLAYER_ALIGNMENT, align)
                                 }
                             }
                         )
@@ -1322,85 +1485,6 @@ private fun RowScope.SyncButton(
     }
 }
 
-@Composable
-private fun LyricsTrackInfo(
-    song: ca.ilianokokoro.umihi.music.models.Song?,
-    modifier: Modifier = Modifier,
-    isPlaying: Boolean
-) {
-    if (song == null) return
-
-    val albumShape = CircleShape
-    val currentRotation = remember { androidx.compose.animation.core.Animatable(0f) }
-
-    LaunchedEffect(isPlaying) {
-        if (isPlaying) {
-            while (true) {
-                currentRotation.animateTo(
-                    targetValue = currentRotation.value + 360f,
-                    animationSpec = tween(8000, easing = androidx.compose.animation.core.LinearEasing)
-                )
-            }
-        } else {
-            currentRotation.stop()
-        }
-    }
-
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        SmartImage(
-            model = song.thumbnailPath ?: song.thumbnailHref,
-            contentDescription = "Cover Art",
-            modifier = Modifier
-                .size(40.dp)
-                .padding(2.dp)
-                .graphicsLayer {
-                    rotationZ = currentRotation.value % 360f
-                }
-                .clip(albumShape),
-            contentScale = ContentScale.Crop
-        )
-
-        Column(
-            modifier = Modifier
-                .weight(1f, fill = false)
-                .padding(vertical = 4.dp)
-                .padding(end = 4.dp),
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = song.title,
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontFamily = GoogleSansRounded,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = song.artist,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontFamily = GoogleSansRounded,
-                    color = Color.Black.copy(alpha = 0.6f)
-                ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-
-        PlayingEqIcon(
-            modifier = Modifier
-                .padding(start = 6.dp, end = 12.dp)
-                .size(width = 16.dp, height = 14.dp),
-            color = MaterialTheme.colorScheme.primary,
-            isPlaying = isPlaying
-        )
-    }
-}
 
 @Composable
 fun PlayingEqIcon(
