@@ -312,6 +312,7 @@ fun NavigationRoot(modifier: Modifier = Modifier) {
                 }
             )
         }
+      }
     }
 }
 

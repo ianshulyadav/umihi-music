@@ -106,7 +106,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.PlaylistAdd
-import androidx.compose.material3.MediumFloatingActionButton
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
@@ -441,7 +441,7 @@ fun QueueBottomSheet(
 
                 Spacer(modifier = Modifier.width(4.dp))
 
-                MediumFloatingActionButton(
+                FloatingActionButton(
                     modifier = Modifier
                         .fillMaxHeight()
                         .aspectRatio(1f),

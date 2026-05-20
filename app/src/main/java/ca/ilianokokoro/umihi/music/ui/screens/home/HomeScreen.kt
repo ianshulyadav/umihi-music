@@ -97,13 +97,13 @@ fun HomeScreen(
                         isRefreshing = uiState.isRefreshing,
                         onRefresh = homeViewModel::refreshPlaylists,
                         state = pullState,
-                        indicator = { refreshing, state ->
+                        indicator = {
                             Box(
                                 modifier = Modifier
                                     .align(Alignment.TopCenter)
                                     .padding(top = 12.dp)
                                     .graphicsLayer {
-                                        val scale = if (refreshing) 1f else state.distanceFraction.coerceIn(0f, 1f)
+                                        val scale = if (uiState.isRefreshing) 1f else pullState.distanceFraction.coerceIn(0f, 1f)
                                         scaleX = scale
                                         scaleY = scale
                                         alpha = scale
@@ -112,14 +112,14 @@ fun HomeScreen(
                                     .padding(8.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                if (refreshing) {
+                                if (uiState.isRefreshing) {
                                     CircularWavyProgressIndicator(
                                         modifier = Modifier.size(24.dp),
                                         color = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
                                 } else {
                                     androidx.compose.material3.CircularProgressIndicator(
-                                        progress = { state.distanceFraction },
+                                        progress = { pullState.distanceFraction },
                                         modifier = Modifier.size(24.dp),
                                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                                         strokeWidth = 3.dp

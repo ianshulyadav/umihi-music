@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -118,13 +119,13 @@ fun PlaylistScreen(
                     modifier = modifier
                         .fillMaxSize(),
                     state = pullState,
-                    indicator = { refreshing, state ->
+                    indicator = {
                         Box(
                             modifier = Modifier
                                 .align(Alignment.TopCenter)
                                 .padding(top = 12.dp)
                                 .graphicsLayer {
-                                    val scale = if (refreshing) 1f else state.distanceFraction.coerceIn(0f, 1f)
+                                    val scale = if (uiState.isRefreshing) 1f else pullState.distanceFraction.coerceIn(0f, 1f)
                                     scaleX = scale
                                     scaleY = scale
                                     alpha = scale
@@ -133,14 +134,14 @@ fun PlaylistScreen(
                                 .padding(8.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            if (refreshing) {
+                            if (uiState.isRefreshing) {
                                 CircularWavyProgressIndicator(
                                     modifier = Modifier.size(24.dp),
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                             } else {
                                 androidx.compose.material3.CircularProgressIndicator(
-                                    progress = { state.distanceFraction },
+                                    progress = { pullState.distanceFraction },
                                     modifier = Modifier.size(24.dp),
                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                                     strokeWidth = 3.dp

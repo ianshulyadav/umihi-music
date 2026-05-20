@@ -44,6 +44,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -183,7 +186,7 @@ fun PlayerScreen(
                         stiffness = Spring.StiffnessLow
                     )
                 },
-                resizeMode = SharedTransitionScope.ResizeMode.ScaleToBounds()
+                resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
             )
         }
     } else {
@@ -488,7 +491,7 @@ fun Thumbnail(
             val artworkModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
                 with(sharedTransitionScope) {
                     Modifier.sharedElement(
-                        state = rememberSharedContentState(key = "player_artwork"),
+                        sharedContentState = rememberSharedContentState(key = "player_artwork"),
                         animatedVisibilityScope = animatedVisibilityScope,
                         boundsTransform = { _, _ ->
                             spring(
@@ -529,7 +532,7 @@ fun SongInfo(
                 Modifier.sharedBounds(
                     sharedContentState = rememberSharedContentState(key = "player_title"),
                     animatedVisibilityScope = animatedVisibilityScope,
-                    resizeMode = SharedTransitionScope.ResizeMode.ScaleToBounds()
+                    resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
                 )
             }
         } else {

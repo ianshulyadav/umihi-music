@@ -74,7 +74,7 @@ fun MiniPlayer(
                     animatedVisibilityScope = animatedVisibilityScope,
                     enter = fadeIn(),
                     exit = fadeOut(),
-                    resizeMode = SharedTransitionScope.ResizeMode.ScaleToBounds()
+                    resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
                 )
                 .fillMaxWidth()
                 .height(68.dp)
@@ -96,7 +96,7 @@ fun MiniPlayer(
             Box(
                 modifier = Modifier
                     .sharedElement(
-                        state = rememberSharedContentState(key = "player_artwork"),
+                        sharedContentState = rememberSharedContentState(key = "player_artwork"),
                         animatedVisibilityScope = animatedVisibilityScope
                     )
                     .size(48.dp)
@@ -140,7 +140,7 @@ fun MiniPlayer(
                         .sharedBounds(
                             sharedContentState = rememberSharedContentState(key = "player_title"),
                             animatedVisibilityScope = animatedVisibilityScope,
-                            resizeMode = SharedTransitionScope.ResizeMode.ScaleToBounds()
+                            resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
                         )
                         .basicMarquee()
                 )

@@ -1,14 +1,10 @@
 package ca.ilianokokoro.umihi.music.ui.screens.player.components
 
+import android.app.Activity
 import androidx.compose.animation.AnimatedContent
-import kotlinx.coroutines.isActive
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -18,7 +14,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -35,9 +33,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -55,8 +55,10 @@ import ca.ilianokokoro.umihi.music.ui.components.SmartImage
 import ca.ilianokokoro.umihi.music.ui.components.WavySliderExpressive
 import ca.ilianokokoro.umihi.music.ui.screens.player.PlayerViewModel
 import ca.ilianokokoro.umihi.music.ui.theme.GoogleSansRounded
+import ca.ilianokokoro.umihi.music.ui.theme.PixelPlayStatusBarStyle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
 
 @Composable
 fun LyricsSheet(
@@ -78,14 +80,21 @@ fun LyricsSheet(
         )
     )
 
-    // Internal Lyrics Display & Control States
+    // Internal Lyrics Display, Style, & Control States
     var showSyncedLyrics by remember(uiState.lyrics) {
         mutableStateOf(uiState.lyrics?.synced != null)
     }
     var localOffsetMillis by remember { mutableIntStateOf(0) }
     var showSyncControls by remember { mutableStateOf(false) }
-    var showMoreMenu by remember { mutableStateOf(false) }
-    var showDelayDialog by remember { mutableStateOf(false) }
+    var showSettingsDialog by remember { mutableStateOf(false) }
+
+    // User Custom Settings
+    var showTranslation by remember { mutableStateOf(true) }
+    var showRomanization by remember { mutableStateOf(true) }
+    var lyricsAlignment by remember { mutableStateOf(TextAlign.Start) }
+    var lyricsFontSize by remember { mutableStateOf(22.sp) }
+    var bgBlurIntensity by remember { mutableStateOf(80.dp) }
+    var animationSpeedMs by remember { mutableStateOf(300) }
 
     // Immersive Mode Interaction Management
     var isImmersiveActive by remember { mutableStateOf(false) }
@@ -105,6 +114,14 @@ fun LyricsSheet(
             isImmersiveActive = true
         }
     }
+
+    // Dynamic status bar translucent/immersive integration
+    val primaryContainer = MaterialTheme.colorScheme.primaryContainer
+    val isSystemDark = isSystemInDarkTheme()
+    PixelPlayStatusBarStyle(
+        color = Color.Transparent,
+        useDarkIcons = if (isSystemDark) false else (androidx.core.graphics.ColorUtils.calculateLuminance(primaryContainer.toArgb()) > 0.5)
+    )
 
     val view = androidx.compose.ui.platform.LocalView.current
     val window = remember(view) {
@@ -137,12 +154,10 @@ fun LyricsSheet(
         }
     }
 
-    // Dynamic dynamic palette configuration
-    val backgroundColor = MaterialTheme.colorScheme.surfaceVariant
-    val onBackgroundColor = MaterialTheme.colorScheme.onSurfaceVariant
     val accentColor = MaterialTheme.colorScheme.primary
     val onAccentColor = MaterialTheme.colorScheme.onPrimary
     val containerColor = MaterialTheme.colorScheme.background
+    val onBackgroundColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     Box(
         modifier = modifier
@@ -166,16 +181,51 @@ fun LyricsSheet(
                 )
             }
     ) {
-        // Blended Album Art Blurred Background
+        // Living cinematic blurred cover artwork background
         if (currentSong != null) {
+            val infiniteTransition = rememberInfiniteTransition(label = "livingBackground")
+            val translationX by infiniteTransition.animateFloat(
+                initialValue = -25f,
+                targetValue = 25f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(18000, easing = LinearEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "bgX"
+            )
+            val translationY by infiniteTransition.animateFloat(
+                initialValue = -25f,
+                targetValue = 25f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(22000, easing = LinearEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "bgY"
+            )
+            val scaleBg by infiniteTransition.animateFloat(
+                initialValue = 1.05f,
+                targetValue = 1.18f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(20000, easing = LinearEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "bgScale"
+            )
+
             SmartImage(
                 model = currentSong.thumbnailPath ?: currentSong.thumbnailHref,
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxSize()
-                    .blur(64.dp),
+                    .graphicsLayer {
+                        scaleX = scaleBg
+                        scaleY = scaleBg
+                        this.translationX = translationX
+                        this.translationY = translationY
+                    }
+                    .blur(bgBlurIntensity),
                 contentScale = ContentScale.Crop,
-                alpha = 0.5f
+                alpha = 0.45f
             )
         }
 
@@ -185,14 +235,14 @@ fun LyricsSheet(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
-                            containerColor.copy(alpha = 0.85f)
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                            containerColor.copy(alpha = 0.88f)
                         )
                     )
                 )
         )
 
-        // --- LYRICS CONTENT (occupies full screen, lyrics scroll underneath header/footer) ---
+        // --- LYRICS CONTENT ---
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -235,8 +285,10 @@ fun LyricsSheet(
                             lazyListState.animateScrollToItem(target)
                         }
 
-                        LaunchedEffect(lazyListState.isScrollInProgress) {
-                            if (lazyListState.isScrollInProgress) {
+                        // BUG FIX: Track user dragging explicitly. Programmatic auto-scrolling does NOT hide controls
+                        val isUserDragging by lazyListState.interactionSource.collectIsDraggedAsState()
+                        LaunchedEffect(isUserDragging) {
+                            if (isUserDragging) {
                                 resetInteraction()
                             }
                         }
@@ -250,30 +302,36 @@ fun LyricsSheet(
                             contentPadding = PaddingValues(
                                 start = 24.dp,
                                 end = 24.dp,
-                                top = 110.dp,
-                                bottom = 220.dp
+                                top = 140.dp,
+                                bottom = 140.dp
                             ),
                             verticalArrangement = Arrangement.spacedBy(24.dp),
                             modifier = Modifier.fillMaxSize()
                         ) {
                             itemsIndexed(lyrics.synced) { index, line ->
                                 val isActive = index == activeLineIndex
-                                val scale by androidx.compose.animation.core.animateFloatAsState(
-                                    targetValue = if (isActive) 1.08f else 0.92f,
-                                    animationSpec = androidx.compose.animation.core.spring(
-                                        dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy,
-                                        stiffness = androidx.compose.animation.core.Spring.StiffnessLow
+                                val scale by animateFloatAsState(
+                                    targetValue = if (isActive) 1.08f else 0.94f,
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                                        stiffness = Spring.StiffnessLow
                                     ),
                                     label = "scale"
                                 )
-                                val animatedAlpha by androidx.compose.animation.core.animateFloatAsState(
+                                val animatedAlpha by animateFloatAsState(
                                     targetValue = if (isActive) 1.0f else 0.45f,
-                                    animationSpec = androidx.compose.animation.core.tween(300),
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioNoBouncy,
+                                        stiffness = Spring.StiffnessLow
+                                    ),
                                     label = "alpha"
                                 )
-                                val animatedColor by androidx.compose.animation.animateColorAsState(
-                                    targetValue = if (isActive) accentColor else onBackgroundColor,
-                                    animationSpec = androidx.compose.animation.core.tween(300),
+                                val animatedColor by animateColorAsState(
+                                    targetValue = if (isActive) accentColor else MaterialTheme.colorScheme.onSurface,
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioNoBouncy,
+                                        stiffness = Spring.StiffnessLow
+                                    ),
                                     label = "color"
                                 )
 
@@ -287,57 +345,60 @@ fun LyricsSheet(
                                             PlayerManager.currentController?.seekTo((line.time - localOffsetMillis).toLong())
                                         }
                                         .padding(vertical = 4.dp),
-                                    horizontalAlignment = Alignment.Start
+                                    horizontalAlignment = if (lyricsAlignment == TextAlign.Center) Alignment.CenterHorizontally else Alignment.Start
                                 ) {
                                     Text(
                                         text = line.line,
                                         style = androidx.compose.ui.text.TextStyle(
                                             fontFamily = GoogleSansRounded,
                                             fontWeight = fontWeight,
-                                            fontSize = 22.sp,
-                                            lineHeight = 22.sp * 1.4f,
-                                            textAlign = TextAlign.Start
+                                            fontSize = lyricsFontSize,
+                                            lineHeight = lyricsFontSize * 1.4f,
+                                            textAlign = lyricsAlignment
                                         ),
                                         color = animatedColor,
                                         modifier = Modifier
                                             .graphicsLayer {
                                                 scaleX = scale
                                                 scaleY = scale
-                                                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
+                                                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(
+                                                    if (lyricsAlignment == TextAlign.Center) 0.5f else 0f,
+                                                    0.5f
+                                                )
                                                 this.alpha = animatedAlpha
                                             }
                                     )
 
-                                    if (!line.romanization.isNullOrEmpty()) {
+                                    if (showRomanization && !line.romanization.isNullOrEmpty()) {
                                         Spacer(modifier = Modifier.height(4.dp))
                                         Text(
                                             text = line.romanization,
                                             style = androidx.compose.ui.text.TextStyle(
                                                 fontFamily = GoogleSansRounded,
                                                 fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
-                                                fontSize = 16.sp,
-                                                lineHeight = 16.sp * 1.3f,
-                                                textAlign = TextAlign.Start
+                                                fontSize = lyricsFontSize * 0.75f,
+                                                lineHeight = (lyricsFontSize * 0.75f) * 1.3f,
+                                                textAlign = lyricsAlignment
                                             ),
-                                            color = if (isActive) MaterialTheme.colorScheme.secondary else onBackgroundColor,
+                                            color = if (isActive) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
                                             modifier = Modifier.graphicsLayer {
                                                 this.alpha = animatedAlpha * 0.8f
                                             }
                                         )
                                     }
 
-                                    if (!line.translation.isNullOrEmpty()) {
+                                    if (showTranslation && !line.translation.isNullOrEmpty()) {
                                         Spacer(modifier = Modifier.height(4.dp))
                                         Text(
                                             text = line.translation,
                                             style = androidx.compose.ui.text.TextStyle(
                                                 fontFamily = GoogleSansRounded,
                                                 fontWeight = if (isActive) FontWeight.Medium else FontWeight.Normal,
-                                                fontSize = 16.sp,
-                                                lineHeight = 16.sp * 1.3f,
-                                                textAlign = TextAlign.Start
+                                                fontSize = lyricsFontSize * 0.75f,
+                                                lineHeight = (lyricsFontSize * 0.75f) * 1.3f,
+                                                textAlign = lyricsAlignment
                                             ),
-                                            color = onBackgroundColor,
+                                            color = MaterialTheme.colorScheme.onSurface,
                                             modifier = Modifier.graphicsLayer {
                                                 this.alpha = animatedAlpha * 0.7f
                                             }
@@ -369,8 +430,9 @@ fun LyricsSheet(
                         val plainLines = lyrics.plain ?: emptyList()
                         val staticListState = rememberLazyListState()
 
-                        LaunchedEffect(staticListState.isScrollInProgress) {
-                            if (staticListState.isScrollInProgress) {
+                        val isStaticDragging by staticListState.interactionSource.collectIsDraggedAsState()
+                        LaunchedEffect(isStaticDragging) {
+                            if (isStaticDragging) {
                                 resetInteraction()
                             }
                         }
@@ -380,8 +442,8 @@ fun LyricsSheet(
                             contentPadding = PaddingValues(
                                 start = 24.dp,
                                 end = 24.dp,
-                                top = 110.dp,
-                                bottom = 220.dp
+                                top = 140.dp,
+                                bottom = 140.dp
                             ),
                             verticalArrangement = Arrangement.spacedBy(20.dp),
                             modifier = Modifier.fillMaxSize()
@@ -392,11 +454,11 @@ fun LyricsSheet(
                                     style = androidx.compose.ui.text.TextStyle(
                                         fontFamily = GoogleSansRounded,
                                         fontWeight = FontWeight.Medium,
-                                        fontSize = 20.sp,
-                                        lineHeight = 28.sp,
-                                        textAlign = TextAlign.Start
+                                        fontSize = lyricsFontSize,
+                                        lineHeight = lyricsFontSize * 1.4f,
+                                        textAlign = lyricsAlignment
                                     ),
-                                    color = onBackgroundColor.copy(alpha = 0.8f),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(vertical = 4.dp)
@@ -408,178 +470,123 @@ fun LyricsSheet(
             }
         }
 
-        // --- FLOATING TOP HEADER ---
-        AnimatedVisibility(
-            visible = !isImmersiveActive,
-            enter = fadeIn() + slideInVertically { -it },
-            exit = fadeOut() + slideOutVertically { -it },
+        // --- PERMANENTLY VISIBLE FLOATING CAPSULE MINI-PLAYER ---
+        Row(
             modifier = Modifier
-                .align(Alignment.TopCenter)
                 .statusBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .fillMaxWidth()
+                .shadow(elevation = 6.dp, shape = RoundedCornerShape(32.dp))
+                .background(
+                    color = Color.White,
+                    shape = RoundedCornerShape(32.dp)
+                )
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            // Close Button
+            IconButton(
+                onClick = onClose,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.KeyboardArrowDown,
+                    contentDescription = "Minimize Lyrics",
+                    tint = Color.Black
+                )
+            }
+
+            // Center Content (Tap CD to Play/Pause)
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .weight(1f)
+                    .padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
             ) {
-                IconButton(
-                    onClick = onClose,
+                val currentRotation = remember { androidx.compose.animation.core.Animatable(0f) }
+                LaunchedEffect(uiState.isPlaying) {
+                    if (uiState.isPlaying) {
+                        while (true) {
+                            currentRotation.animateTo(
+                                targetValue = currentRotation.value + 360f,
+                                animationSpec = tween(10000, easing = LinearEasing)
+                            )
+                        }
+                    } else {
+                        currentRotation.stop()
+                    }
+                }
+
+                SmartImage(
+                    model = currentSong?.thumbnailPath ?: currentSong?.thumbnailHref,
+                    contentDescription = "Cover Art CD",
                     modifier = Modifier
-                        .size(40.dp)
-                        .background(onBackgroundColor.copy(alpha = 0.1f), CircleShape)
+                        .size(36.dp)
+                        .graphicsLayer {
+                            rotationZ = currentRotation.value % 360f
+                        }
+                        .clip(CircleShape)
+                        .clickable {
+                            resetInteraction()
+                            val controller = PlayerManager.currentController
+                            if (uiState.isPlaying) controller?.pause() else controller?.play()
+                        },
+                    contentScale = ContentScale.Crop
+                )
+
+                Spacer(modifier = Modifier.width(10.dp))
+
+                Column(
+                    modifier = Modifier.weight(1f, fill = false),
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Close,
-                        contentDescription = "Close Lyrics",
-                        tint = onBackgroundColor
+                    Text(
+                        text = currentSong?.title ?: "Unknown Title",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontFamily = GoogleSansRounded,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = Color.Black
+                    )
+                    Text(
+                        text = currentSong?.artist ?: "Unknown Artist",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontFamily = GoogleSansRounded
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = Color.Black.copy(alpha = 0.6f)
                     )
                 }
 
-                // Rounded Rectangular Capsule miniplayer on header in lyrics page
-                // Clip and background are fully stadium-styled like a capsule pill shape!
-                LyricsTrackInfo(
-                    song = currentSong,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 8.dp)
-                        .clip(CircleShape)
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = 0.95f),
-                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
-                                )
-                            )
-                        )
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                Spacer(modifier = Modifier.width(8.dp))
+
+                PlayingEqIcon(
+                    modifier = Modifier.size(width = 14.dp, height = 12.dp),
+                    color = accentColor,
                     isPlaying = uiState.isPlaying
                 )
-
-                Box {
-                    IconButton(
-                        onClick = { showMoreMenu = true },
-                        modifier = Modifier
-                            .size(40.dp)
-                            .background(onBackgroundColor.copy(alpha = 0.1f), CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.MoreVert,
-                            contentDescription = "More Settings",
-                            tint = onBackgroundColor
-                        )
-                    }
-
-                    DropdownMenu(
-                        expanded = showMoreMenu,
-                        onDismissRequest = { showMoreMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Show Technical File Info", fontFamily = GoogleSansRounded) },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Rounded.Info,
-                                    contentDescription = null
-                                )
-                            },
-                            trailingIcon = {
-                                Switch(
-                                    checked = settings.showPlayerFileInfo,
-                                    onCheckedChange = { checked ->
-                                        scope.launch {
-                                            settingsRepository.save(DatastoreRepository.PreferenceKeys.SHOW_PLAYER_FILE_INFO, checked)
-                                        }
-                                    }
-                                )
-                            },
-                            onClick = {
-                                scope.launch {
-                                    settingsRepository.save(DatastoreRepository.PreferenceKeys.SHOW_PLAYER_FILE_INFO, !settings.showPlayerFileInfo)
-                                }
-                            }
-                        )
-
-                        DropdownMenuItem(
-                            text = { Text("Timing Sync Controls", fontFamily = GoogleSansRounded) },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Rounded.Tune,
-                                    contentDescription = null
-                                )
-                            },
-                            trailingIcon = {
-                                Checkbox(
-                                    checked = showSyncControls,
-                                    onCheckedChange = { showSyncControls = it }
-                                )
-                            },
-                            onClick = { showSyncControls = !showSyncControls }
-                        )
-
-                        DropdownMenuItem(
-                            text = { Text("Auto-hide Delay Settings", fontFamily = GoogleSansRounded) },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Rounded.Timer,
-                                    contentDescription = null
-                                )
-                            },
-                            onClick = {
-                                showMoreMenu = false
-                                showDelayDialog = true
-                            }
-                        )
-                    }
-                }
             }
-        }
 
-        // --- FLOATING IMMERSIVE MODE TOGGLE FAB ---
-        androidx.compose.animation.AnimatedVisibility(
-            visible = !isImmersiveActive,
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(bottom = 225.dp, end = 24.dp) // Offset above bottom floating card controls
-        ) {
-            val isFeatureEnabled = settings.useImmersiveLyrics
-            val fabBgColor by animateColorAsState(
-                targetValue = if (isFeatureEnabled) accentColor else onBackgroundColor.copy(alpha = 0.15f),
-                animationSpec = tween(durationMillis = 300),
-                label = "fabBg"
-            )
-            val fabContentColor by animateColorAsState(
-                targetValue = if (isFeatureEnabled) onAccentColor else onBackgroundColor,
-                animationSpec = tween(durationMillis = 300),
-                label = "fabContent"
-            )
-
-            Box(
-                modifier = Modifier
-                    .size(50.dp)
-                    .clip(CircleShape)
-                    .background(fabBgColor)
-                    .clickable {
-                        scope.launch {
-                            settingsRepository.save(DatastoreRepository.PreferenceKeys.USE_IMMERSIVE_LYRICS, !settings.useImmersiveLyrics)
-                        }
-                        resetInteraction()
-                    },
-                contentAlignment = Alignment.Center
+            // Settings button (Opens custom customization dialog)
+            IconButton(
+                onClick = { showSettingsDialog = true },
+                modifier = Modifier.size(40.dp)
             ) {
                 Icon(
-                    imageVector = if (isFeatureEnabled) Icons.Rounded.Fullscreen else Icons.Rounded.FullscreenExit,
-                    contentDescription = "Toggle Immersive Feature",
-                    tint = fabContentColor,
-                    modifier = Modifier.size(24.dp)
+                    imageVector = Icons.Filled.MoreVert,
+                    contentDescription = "Customization Settings",
+                    tint = Color.Black
                 )
             }
         }
 
-        // --- FLOATING BOTTOM PLAYER CONTROLS CARD ---
-        androidx.compose.animation.AnimatedVisibility(
+        // --- FLOATING COMPACT BOTTOM DOCK (Hidden in Immersive Mode) ---
+        AnimatedVisibility(
             visible = !isImmersiveActive,
             enter = fadeIn() + slideInVertically { it },
             exit = fadeOut() + slideOutVertically { it },
@@ -599,12 +606,12 @@ fun LyricsSheet(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    // Timing adjustment panel controls
-                    androidx.compose.animation.AnimatedVisibility(
+                    // Timing adjustment panel controls (Toggled from settings dialog)
+                    AnimatedVisibility(
                         visible = showSyncControls && showSyncedLyrics && uiState.lyrics?.synced != null,
                         enter = fadeIn() + slideInVertically { -it / 2 },
                         exit = fadeOut() + slideOutVertically { -it / 2 }
@@ -620,49 +627,53 @@ fun LyricsSheet(
                         )
                     }
 
-                    // Playback progress slider row
+                    // Compact control dock row
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        // Animating PlayPause box corner radius
-                        val playPauseRadius by animateDpAsState(
-                            targetValue = if (uiState.isPlaying) 16.dp else 28.dp,
-                            animationSpec = spring(stiffness = Spring.StiffnessLow),
-                            label = "playPauseShape"
-                        )
+                        // Minimize Button (leftmost)
+                        IconButton(
+                            onClick = onClose,
+                            modifier = Modifier
+                                .size(44.dp)
+                                .background(onBackgroundColor.copy(alpha = 0.08f), CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Close,
+                                contentDescription = "Minimize Lyrics",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
 
+                        // Play/Pause Button
+                        val playPauseRadius by animateDpAsState(
+                            targetValue = if (uiState.isPlaying) 12.dp else 22.dp,
+                            animationSpec = spring(stiffness = Spring.StiffnessLow),
+                            label = "playPauseRadius"
+                        )
                         Box(
                             modifier = Modifier
-                                .size(56.dp)
+                                .size(44.dp)
                                 .clip(RoundedCornerShape(playPauseRadius))
                                 .background(accentColor)
                                 .clickable {
                                     resetInteraction()
                                     val controller = PlayerManager.currentController
-                                    if (uiState.isPlaying) {
-                                        controller?.pause()
-                                    } else {
-                                        controller?.play()
-                                    }
+                                    if (uiState.isPlaying) controller?.pause() else controller?.play()
                                 },
                             contentAlignment = Alignment.Center
                         ) {
-                            AnimatedContent(
-                                targetState = uiState.isPlaying,
-                                label = "playPauseIcon"
-                            ) { playing ->
-                                Icon(
-                                    imageVector = if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                                    contentDescription = "Play/Pause",
-                                    tint = onAccentColor,
-                                    modifier = Modifier.size(26.dp)
-                                )
-                            }
+                            Icon(
+                                imageVector = if (uiState.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                                contentDescription = "Play/Pause",
+                                tint = onAccentColor,
+                                modifier = Modifier.size(22.dp)
+                            )
                         }
 
-                        // Premium expressive wavy slider
+                        // Progress seek slider
                         WavySliderExpressive(
                             value = uiState.playbackProgress.position,
                             valueRange = 0f..uiState.playbackProgress.duration.coerceAtLeast(1f),
@@ -677,21 +688,72 @@ fun LyricsSheet(
                             },
                             modifier = Modifier.weight(1f)
                         )
-                    }
 
-                    // Segmented selection bar at the very bottom
-                    LyricsFloatingToolbar(
-                        onNavigateBack = onClose,
-                        showSyncedLyrics = showSyncedLyrics,
-                        onShowSyncedLyricsChange = { showSyncedLyrics = it },
-                        hasSyncedLyrics = !uiState.lyrics?.synced.isNullOrEmpty(),
-                        onMoreClick = { showMoreMenu = true },
-                        backgroundColor = onBackgroundColor.copy(alpha = 0.08f),
-                        onBackgroundColor = onBackgroundColor,
-                        accentColor = accentColor,
-                        onAccentColor = onAccentColor,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                        // Synced/Static mode toggle capsule
+                        Row(
+                            modifier = Modifier
+                                .height(38.dp)
+                                .background(onBackgroundColor.copy(alpha = 0.08f), CircleShape)
+                                .padding(2.dp),
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            val syncedBg by animateColorAsState(
+                                targetValue = if (showSyncedLyrics) accentColor else Color.Transparent,
+                                label = "syncedBg"
+                            )
+                            val syncedTint by animateColorAsState(
+                                targetValue = if (showSyncedLyrics) onAccentColor else MaterialTheme.colorScheme.onSurface,
+                                label = "syncedTint"
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .width(46.dp)
+                                    .clip(CircleShape)
+                                    .background(syncedBg)
+                                    .clickable(enabled = !uiState.lyrics?.synced.isNullOrEmpty()) {
+                                        resetInteraction()
+                                        showSyncedLyrics = true
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Sync",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = syncedTint
+                                )
+                            }
+
+                            val staticBg by animateColorAsState(
+                                targetValue = if (!showSyncedLyrics) accentColor else Color.Transparent,
+                                label = "staticBg"
+                            )
+                            val staticTint by animateColorAsState(
+                                targetValue = if (!showSyncedLyrics) onAccentColor else MaterialTheme.colorScheme.onSurface,
+                                label = "staticTint"
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .width(46.dp)
+                                    .clip(CircleShape)
+                                    .background(staticBg)
+                                    .clickable {
+                                        resetInteraction()
+                                        showSyncedLyrics = false
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Text",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = staticTint
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -721,59 +783,442 @@ fun LyricsSheet(
         }
     }
 
-    if (showDelayDialog) {
-        AutoHideDelayDialog(
-            currentDelay = settings.lyricsAutoHideDelay,
-            onDismiss = { showDelayDialog = false },
-            onSelectDelay = { newDelay ->
-                scope.launch {
-                    settingsRepository.save(DatastoreRepository.PreferenceKeys.LYRICS_AUTOHIDE_DELAY, newDelay)
-                }
-            }
+    // Comprehensive Dialog Settings customization
+    if (showSettingsDialog) {
+        LyricsSettingsDialog(
+            onDismiss = { showSettingsDialog = false },
+            showSyncedLyrics = showSyncedLyrics,
+            onShowSyncedLyricsChange = { showSyncedLyrics = it },
+            hasSyncedLyrics = !uiState.lyrics?.synced.isNullOrEmpty(),
+            showTranslation = showTranslation,
+            onShowTranslationChange = { showTranslation = it },
+            showRomanization = showRomanization,
+            onShowRomanizationChange = { showRomanization = it },
+            lyricsAlignment = lyricsAlignment,
+            onLyricsAlignmentChange = { lyricsAlignment = it },
+            lyricsFontSize = lyricsFontSize,
+            onLyricsFontSizeChange = { lyricsFontSize = it },
+            bgBlurIntensity = bgBlurIntensity,
+            onBgBlurIntensityChange = { bgBlurIntensity = it },
+            animationSpeedMs = animationSpeedMs,
+            onAnimationSpeedMsChange = { animationSpeedMs = it },
+            showSyncControls = showSyncControls,
+            onShowSyncControlsChange = { showSyncControls = it },
+            settings = settings,
+            settingsRepository = settingsRepository,
+            scope = scope
         )
     }
 }
 
 @Composable
-fun ToggleSegmentButton(
-    modifier: Modifier,
-    active: Boolean,
-    enabled: Boolean = true,
-    activeColor: Color,
-    inactiveColor: Color = Color.Gray,
-    activeContentColor: Color = MaterialTheme.colorScheme.onPrimary,
-    inactiveContentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    activeCornerRadius: Dp = 8.dp,
-    onClick: () -> Unit,
-    text: String
+fun LyricsSettingsDialog(
+    onDismiss: () -> Unit,
+    showSyncedLyrics: Boolean,
+    onShowSyncedLyricsChange: (Boolean) -> Unit,
+    hasSyncedLyrics: Boolean,
+    showTranslation: Boolean,
+    onShowTranslationChange: (Boolean) -> Unit,
+    showRomanization: Boolean,
+    onShowRomanizationChange: (Boolean) -> Unit,
+    lyricsAlignment: TextAlign,
+    onLyricsAlignmentChange: (TextAlign) -> Unit,
+    lyricsFontSize: androidx.compose.ui.unit.TextUnit,
+    onLyricsFontSizeChange: (androidx.compose.ui.unit.TextUnit) -> Unit,
+    bgBlurIntensity: Dp,
+    onBgBlurIntensityChange: (Dp) -> Unit,
+    animationSpeedMs: Int,
+    onAnimationSpeedMsChange: (Int) -> Unit,
+    showSyncControls: Boolean,
+    onShowSyncControlsChange: (Boolean) -> Unit,
+    settings: ca.ilianokokoro.umihi.music.models.UmihiSettings,
+    settingsRepository: DatastoreRepository,
+    scope: kotlinx.coroutines.CoroutineScope
 ) {
-    val targetBgColor = if (active) activeColor else inactiveColor
-    val bgColor by animateColorAsState(
-        targetValue = if (enabled) targetBgColor else targetBgColor.copy(alpha = 0.5f),
-        animationSpec = tween(durationMillis = 250),
-        label = "segmentBg"
-    )
-    val cornerRadius by animateDpAsState(
-        targetValue = if (active) activeCornerRadius else 8.dp,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "segmentCorner"
-    )
-
-    Box(
-        modifier = modifier
-            .fillMaxHeight()
-            .clip(RoundedCornerShape(cornerRadius))
-            .background(bgColor)
-            .clickable(enabled = enabled, onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Box(modifier = Modifier.graphicsLayer(alpha = if (enabled) 1f else 0.38f)) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(28.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(6.dp),
+        title = {
             Text(
-                text = text,
-                color = if (active) activeContentColor else inactiveContentColor,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold
+                text = "Lyrics Customization",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontFamily = GoogleSansRounded,
+                    fontWeight = FontWeight.Bold
+                ),
+                color = MaterialTheme.colorScheme.onSurface
             )
+        },
+        text = {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 400.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(vertical = 8.dp)
+            ) {
+                // Section: Layout & Mode
+                item {
+                    SettingsSectionTitle(title = "Display Options")
+                }
+                item {
+                    SettingsCardGroup {
+                        // Synced / Static
+                        SettingsSwitchItem(
+                            title = "Synced Lyrics",
+                            description = "Follow song timing with scrolling animations",
+                            checked = showSyncedLyrics,
+                            enabled = hasSyncedLyrics,
+                            onCheckedChange = onShowSyncedLyricsChange
+                        )
+                        // Immersive mode
+                        SettingsSwitchItem(
+                            title = "Immersive Mode",
+                            description = "Auto-hide controls during inactive playback",
+                            checked = settings.useImmersiveLyrics,
+                            onCheckedChange = { checked ->
+                                scope.launch {
+                                    settingsRepository.save(DatastoreRepository.PreferenceKeys.USE_IMMERSIVE_LYRICS, checked)
+                                }
+                            }
+                        )
+                        // Auto-hide delay selection
+                        SettingsSpinnerItem(
+                            title = "Auto-hide Delay",
+                            currentValue = "${settings.lyricsAutoHideDelay} seconds",
+                            options = listOf(3, 5, 10, 15),
+                            optionToString = { "$it seconds" },
+                            onSelect = { sec ->
+                                scope.launch {
+                                    settingsRepository.save(DatastoreRepository.PreferenceKeys.LYRICS_AUTOHIDE_DELAY, sec)
+                                }
+                            }
+                        )
+                    }
+                }
+
+                // Section: Font & Text Style
+                item {
+                    SettingsSectionTitle(title = "Text Styles")
+                }
+                item {
+                    SettingsCardGroup {
+                        // Font Size Slider
+                        SettingsSliderItem(
+                            title = "Font Size",
+                            value = lyricsFontSize.value,
+                            valueRange = 16f..32f,
+                            steps = 7,
+                            displayValue = "${lyricsFontSize.value.toInt()} sp",
+                            onValueChange = { onLyricsFontSizeChange(it.sp) }
+                        )
+                        // Alignment Selector
+                        SettingsRowToggle(
+                            title = "Alignment",
+                            options = listOf(TextAlign.Start to "Left", TextAlign.Center to "Center"),
+                            selected = lyricsAlignment,
+                            onSelect = onLyricsAlignmentChange
+                        )
+                        // Translation Toggle
+                        SettingsSwitchItem(
+                            title = "Show Translation",
+                            description = "Display translated lines if available",
+                            checked = showTranslation,
+                            onCheckedChange = onShowTranslationChange
+                        )
+                        // Romanization Toggle
+                        SettingsSwitchItem(
+                            title = "Show Romanized Lyrics",
+                            description = "Display romanized lines for pronunciation",
+                            checked = showRomanization,
+                            onCheckedChange = onShowRomanizationChange
+                        )
+                    }
+                }
+
+                // Section: Visuals & Motion
+                item {
+                    SettingsSectionTitle(title = "Visuals & Motion")
+                }
+                item {
+                    SettingsCardGroup {
+                        // Background Blur Intensity Slider
+                        SettingsSliderItem(
+                            title = "Background Blur",
+                            value = bgBlurIntensity.value,
+                            valueRange = 20f..120f,
+                            steps = 9,
+                            displayValue = "${bgBlurIntensity.value.toInt()} dp",
+                            onValueChange = { onBgBlurIntensityChange(it.dp) }
+                        )
+                        // Animation Speed Slider
+                        SettingsSliderItem(
+                            title = "Transition Speed",
+                            value = animationSpeedMs.toFloat(),
+                            valueRange = 150f..600f,
+                            steps = 8,
+                            displayValue = "${animationSpeedMs} ms",
+                            onValueChange = { onAnimationSpeedMsChange(it.toInt()) }
+                        )
+                        // Show Timing Controls
+                        SettingsSwitchItem(
+                            title = "Show Timing Offset Controls",
+                            description = "Allows shifting lyrics sync forward or backward",
+                            checked = showSyncControls,
+                            onCheckedChange = onShowSyncControlsChange
+                        )
+                        // Technical File Info Toggle
+                        SettingsSwitchItem(
+                            title = "Show Technical File Info",
+                            description = "Display source format and technical details",
+                            checked = settings.showPlayerFileInfo,
+                            onCheckedChange = { checked ->
+                                scope.launch {
+                                    settingsRepository.save(DatastoreRepository.PreferenceKeys.SHOW_PLAYER_FILE_INFO, checked)
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = "Done",
+                    fontFamily = GoogleSansRounded,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    )
+}
+
+@Composable
+fun SettingsSectionTitle(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleSmall.copy(
+            fontFamily = GoogleSansRounded,
+            fontWeight = FontWeight.Bold
+        ),
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+    )
+}
+
+@Composable
+fun SettingsCardGroup(content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            content = content
+        )
+    }
+}
+
+@Composable
+fun SettingsSwitchItem(
+    title: String,
+    description: String? = null,
+    checked: Boolean,
+    enabled: Boolean = true,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled) { onCheckedChange(!checked) }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontFamily = GoogleSansRounded,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+            )
+            if (description != null) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontFamily = GoogleSansRounded
+                    ),
+                    color = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                )
+            }
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            enabled = enabled
+        )
+    }
+}
+
+@Composable
+fun SettingsSliderItem(
+    title: String,
+    value: Float,
+    valueRange: ClosedFloatingPointRange<Float>,
+    steps: Int,
+    displayValue: String,
+    onValueChange: (Float) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 10.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontFamily = GoogleSansRounded,
+                    fontWeight = FontWeight.SemiBold
+                )
+            )
+            Text(
+                text = displayValue,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontFamily = GoogleSansRounded,
+                    fontWeight = FontWeight.Bold
+                ),
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = valueRange,
+            steps = steps
+        )
+    }
+}
+
+@Composable
+fun <T> SettingsSpinnerItem(
+    title: String,
+    currentValue: String,
+    options: List<T>,
+    optionToString: (T) -> String,
+    onSelect: (T) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { expanded = true }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyLarge.copy(
+                fontFamily = GoogleSansRounded,
+                fontWeight = FontWeight.SemiBold
+            )
+        )
+        Box {
+            Text(
+                text = currentValue,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontFamily = GoogleSansRounded,
+                    fontWeight = FontWeight.Bold
+                ),
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(end = 4.dp)
+            )
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                options.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(text = optionToString(option), fontFamily = GoogleSansRounded) },
+                        onClick = {
+                            onSelect(option)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun <T> SettingsRowToggle(
+    title: String,
+    options: List<Pair<T, String>>,
+    selected: T,
+    onSelect: (T) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyLarge.copy(
+                fontFamily = GoogleSansRounded,
+                fontWeight = FontWeight.SemiBold
+            ),
+            modifier = Modifier.weight(1f)
+        )
+        Row(
+            modifier = Modifier
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), CircleShape)
+                .padding(2.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            options.forEach { (option, label) ->
+                val active = option == selected
+                val bg by animateColorAsState(
+                    targetValue = if (active) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    label = "toggleBg"
+                )
+                val tint by animateColorAsState(
+                    targetValue = if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                    label = "toggleTint"
+                )
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(bg)
+                        .clickable { onSelect(option) }
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = tint
+                    )
+                }
+            }
         }
     }
 }
@@ -800,7 +1245,6 @@ fun LyricsSyncControls(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        // -0.5s
         SyncButton(
             text = "-0.5s",
             onClick = { onOffsetChange(offsetMillis - 500) },
@@ -808,7 +1252,6 @@ fun LyricsSyncControls(
             containerColor = accentColor,
             contentColor = onAccentColor
         )
-        // -0.1s
         SyncButton(
             text = "-0.1s",
             onClick = { onOffsetChange(offsetMillis - 100) },
@@ -816,18 +1259,16 @@ fun LyricsSyncControls(
             containerColor = accentColor,
             contentColor = onAccentColor
         )
-        // Center Display / Reset
         val offsetText = if (offsetMillis == 0) "0.0s" else "${String.format("%.1f", offsetMillis / 1000f)}s"
         SyncButton(
             text = offsetText,
             onClick = { onOffsetChange(0) },
-            weight = 1.3f, // Slightly wider
+            weight = 1.3f,
             containerColor = if (offsetMillis != 0) accentColor else backgroundColor,
             contentColor = if (offsetMillis != 0) onAccentColor else onBackgroundColor,
             enabled = offsetMillis != 0,
             fontSize = 12.sp
         )
-        // +0.1s
         SyncButton(
             text = "+0.1s",
             onClick = { onOffsetChange(offsetMillis + 100) },
@@ -835,7 +1276,6 @@ fun LyricsSyncControls(
             containerColor = accentColor,
             contentColor = onAccentColor
         )
-        // +0.5s
         SyncButton(
             text = "+0.5s",
             onClick = { onOffsetChange(offsetMillis + 500) },
@@ -869,7 +1309,7 @@ private fun RowScope.SyncButton(
             disabledContainerColor = containerColor,
             disabledContentColor = contentColor
         ),
-        contentPadding = PaddingValues(0.dp) // Tight padding
+        contentPadding = PaddingValues(0.dp)
     ) {
         Text(
             text = text,
@@ -879,171 +1319,6 @@ private fun RowScope.SyncButton(
             maxLines = 1
         )
     }
-}
-
-@Composable
-fun LyricsFloatingToolbar(
-    modifier: Modifier = Modifier,
-    onNavigateBack: () -> Unit,
-    showSyncedLyrics: Boolean,
-    onShowSyncedLyricsChange: (Boolean) -> Unit,
-    hasSyncedLyrics: Boolean,
-    onMoreClick: () -> Unit,
-    backgroundColor: Color,
-    onBackgroundColor: Color,
-    accentColor: Color,
-    onAccentColor: Color
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(56.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        val backInteractionSource = remember { MutableInteractionSource() }
-        val isBackPressed by backInteractionSource.collectIsPressedAsState()
-
-        val backPressScale by animateFloatAsState(
-            targetValue = if (isBackPressed) 0.82f else 1f,
-            animationSpec = spring(
-                stiffness = Spring.StiffnessMedium,
-                dampingRatio = Spring.DampingRatioMediumBouncy
-            ),
-            label = "backPressScale"
-        )
-
-        IconButton(
-            modifier = Modifier
-                .size(48.dp)
-                .graphicsLayer {
-                    scaleX = backPressScale
-                    scaleY = backPressScale
-                },
-            interactionSource = backInteractionSource,
-            colors = IconButtonDefaults.iconButtonColors(
-                containerColor = backgroundColor,
-                contentColor = onBackgroundColor
-            ),
-            onClick = onNavigateBack
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                contentDescription = "Back",
-                tint = onBackgroundColor
-            )
-        }
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        Row(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-                .background(backgroundColor, CircleShape)
-                .padding(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            ToggleSegmentButton(
-                modifier = Modifier.weight(1f),
-                active = showSyncedLyrics,
-                enabled = hasSyncedLyrics,
-                activeColor = accentColor,
-                inactiveColor = Color.Transparent,
-                activeContentColor = onAccentColor,
-                inactiveContentColor = onBackgroundColor,
-                activeCornerRadius = 50.dp,
-                onClick = { onShowSyncedLyricsChange(true) },
-                text = "Synced"
-            )
-
-            ToggleSegmentButton(
-                modifier = Modifier.weight(1f),
-                active = !showSyncedLyrics,
-                enabled = true,
-                activeColor = accentColor,
-                inactiveColor = Color.Transparent,
-                activeContentColor = onAccentColor,
-                inactiveContentColor = onBackgroundColor,
-                activeCornerRadius = 50.dp,
-                onClick = { onShowSyncedLyricsChange(false) },
-                text = "Static"
-            )
-        }
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        IconButton(
-            modifier = Modifier.size(48.dp),
-            colors = IconButtonDefaults.iconButtonColors(
-                containerColor = backgroundColor,
-                contentColor = onBackgroundColor
-            ),
-            onClick = onMoreClick
-        ) {
-            Icon(
-                imageVector = Icons.Filled.MoreVert,
-                contentDescription = "Options",
-                tint = onBackgroundColor
-            )
-        }
-    }
-}
-
-@Composable
-fun AutoHideDelayDialog(
-    currentDelay: Int,
-    onDismiss: () -> Unit,
-    onSelectDelay: (Int) -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "Auto-hide Delay",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontFamily = GoogleSansRounded,
-                    fontWeight = FontWeight.Bold
-                )
-            )
-        },
-        text = {
-            Column {
-                listOf(3, 5, 10, 15).forEach { sec ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onSelectDelay(sec)
-                                onDismiss()
-                            }
-                            .padding(vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = currentDelay == sec,
-                            onClick = {
-                                onSelectDelay(sec)
-                                onDismiss()
-                            }
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "${sec} seconds",
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontFamily = GoogleSansRounded
-                            )
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel", fontFamily = GoogleSansRounded)
-            }
-        }
-    )
 }
 
 @Composable
@@ -1208,4 +1483,3 @@ fun PlayingEqIcon(
         }
     }
 }
-
