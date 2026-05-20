@@ -143,39 +143,57 @@ class PlayerViewModel(application: Application) :
         }
         lastUpdatedSongIndex = newIndex
 
-
         viewModelScope.launch {
-            resetState()
-            updateQueue()
-            currentSong?.let {
-                checkFavoriteStatus(it)
+            val controller = PlayerManager.currentController
+            val newQueue = controller?.getQueue() ?: emptyList()
+            val newSong = newQueue.getOrNull(newIndex)
+
+            // Look up favorite status of the new song immediately (on Dispatchers.IO)
+            val isFav = if (newSong != null) {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    localPlaylistRepository.isSongInPlaylist("liked_songs", newSong.youtubeId)
+                }
+            } else {
+                false
+            }
+
+            _uiState.update {
+                it.copy(
+                    currentIndex = newIndex,
+                    queue = newQueue.toMutableList(),
+                    isFavorite = isFav,
+                    playbackProgress = PlaybackProgress(
+                        duration = 0f,
+                        position = 0f,
+                    )
+                )
+            }
+
+            newSong?.let {
+                observeFavoriteStatus(it)
                 loadLyricsForSong(it)
             }
         }
-
     }
 
-    private fun checkFavoriteStatus(song: Song) {
-        viewModelScope.launch {
-            val isFav = localPlaylistRepository.isSongInPlaylist("liked_songs", song.youtubeId)
-            _uiState.update {
-                it.copy(isFavorite = isFav)
-            }
-            
-            // Sync user's liked songs from YouTube in the background
-            ca.ilianokokoro.umihi.music.core.helpers.LikedSongsSyncHelper.syncLikedSongsIfNeeded(
-                getApplication(),
-                viewModelScope
-            )
-            
-            // Update state in case local sync modified it
-            val isFavPostSync = localPlaylistRepository.isSongInPlaylist("liked_songs", song.youtubeId)
-            if (isFavPostSync != isFav) {
-                _uiState.update {
-                    it.copy(isFavorite = isFavPostSync)
+    private var favoriteStatusJob: kotlinx.coroutines.Job? = null
+
+    private fun observeFavoriteStatus(song: Song) {
+        favoriteStatusJob?.cancel()
+        favoriteStatusJob = viewModelScope.launch {
+            localPlaylistRepository.observeIsSongInPlaylist("liked_songs", song.youtubeId)
+                .collect { isFav ->
+                    _uiState.update {
+                        it.copy(isFavorite = isFav)
+                    }
                 }
-            }
         }
+
+        // Sync user's liked songs from YouTube in the background
+        ca.ilianokokoro.umihi.music.core.helpers.LikedSongsSyncHelper.syncLikedSongsIfNeeded(
+            getApplication(),
+            viewModelScope
+        )
     }
 
     fun toggleFavorite() {

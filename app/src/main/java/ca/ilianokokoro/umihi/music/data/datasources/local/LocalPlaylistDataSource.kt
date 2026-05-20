@@ -37,6 +37,9 @@ interface LocalPlaylistDataSource {
     @Query("SELECT EXISTS(SELECT 1 FROM PlaylistSongCrossRef WHERE playlistId = :playlistId AND songId = :songId)")
     suspend fun isSongInPlaylist(playlistId: String, songId: String): Boolean
 
+    @Query("SELECT EXISTS(SELECT 1 FROM PlaylistSongCrossRef WHERE playlistId = :playlistId AND songId = :songId)")
+    fun observeIsSongInPlaylist(playlistId: String, songId: String): Flow<Boolean>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCrossRef(ref: PlaylistSongCrossRef)
 
