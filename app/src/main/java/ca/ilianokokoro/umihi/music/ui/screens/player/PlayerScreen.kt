@@ -163,10 +163,14 @@ fun PlayerScreen(
 
     // Close the screen in resumed with an empty queue
     val lifecycleOwner = LocalLifecycleOwner.current
+    val currentOnBack by androidx.compose.runtime.rememberUpdatedState(onBack)
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME && uiState.queue.isEmpty() && currentSong == null) {
-                onBack()
+            if (event == Lifecycle.Event.ON_RESUME) {
+                val controller = ca.ilianokokoro.umihi.music.core.managers.PlayerManager.currentController
+                if (controller != null && controller.mediaItemCount == 0) {
+                    currentOnBack()
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -180,12 +184,12 @@ fun PlayerScreen(
                 animatedVisibilityScope = animatedVisibilityScope,
                 enter = fadeIn(tween(300)),
                 exit = fadeOut(tween(300)),
-                boundsTransform = { _, _ ->
-                    spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessMediumLow
-                    )
-                },
+                    boundsTransform = { _, _ ->
+                        tween(
+                            durationMillis = 350,
+                            easing = androidx.compose.animation.core.FastOutSlowInEasing
+                        )
+                    },
                 resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
             )
         }

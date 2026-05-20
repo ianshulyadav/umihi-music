@@ -159,18 +159,9 @@ fun NavigationRoot(modifier: Modifier = Modifier) {
                 transitionSpec = {
                     val isEnteringPlayer = targetState.key == PlayerScreenKey
                     val isExitingPlayer = initialState.key == PlayerScreenKey
-                    if (isEnteringPlayer) {
-                        slideInVertically(
-                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
-                            initialOffsetY = { it }
-                        ) + fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
-                        fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
-                    } else if (isExitingPlayer) {
+                    if (isEnteringPlayer || isExitingPlayer) {
                         fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
-                        slideOutVertically(
-                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
-                            targetOffsetY = { it }
-                        ) + fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
+                        fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
                     } else {
                         slideInHorizontally(
                             animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
@@ -185,18 +176,9 @@ fun NavigationRoot(modifier: Modifier = Modifier) {
                 popTransitionSpec = {
                     val isEnteringPlayer = targetState.key == PlayerScreenKey
                     val isExitingPlayer = initialState.key == PlayerScreenKey
-                    if (isEnteringPlayer) {
-                        slideInVertically(
-                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
-                            initialOffsetY = { -it }
-                        ) + fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
-                        fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
-                    } else if (isExitingPlayer) {
+                    if (isEnteringPlayer || isExitingPlayer) {
                         fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
-                        slideOutVertically(
-                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
-                            targetOffsetY = { it }
-                        ) + fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
+                        fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
                     } else {
                         slideInHorizontally(
                             animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
@@ -211,18 +193,9 @@ fun NavigationRoot(modifier: Modifier = Modifier) {
                 predictivePopTransitionSpec = {
                     val isEnteringPlayer = targetState.key == PlayerScreenKey
                     val isExitingPlayer = initialState.key == PlayerScreenKey
-                    if (isEnteringPlayer) {
-                        slideInVertically(
-                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
-                            initialOffsetY = { -it }
-                        ) + fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
-                        fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
-                    } else if (isExitingPlayer) {
+                    if (isEnteringPlayer || isExitingPlayer) {
                         fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
-                        slideOutVertically(
-                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
-                            targetOffsetY = { it }
-                        ) + fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
+                        fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
                     } else {
                         slideInHorizontally(
                             animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),

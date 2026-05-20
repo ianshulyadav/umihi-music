@@ -78,9 +78,9 @@ fun MiniPlayer(
                     enter = fadeIn(tween(300)),
                     exit = fadeOut(tween(300)),
                     boundsTransform = { _, _ ->
-                        spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessMediumLow
+                        tween(
+                            durationMillis = 350,
+                            easing = androidx.compose.animation.core.FastOutSlowInEasing
                         )
                     },
                     resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
