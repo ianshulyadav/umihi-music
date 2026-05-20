@@ -43,3 +43,6 @@ hprof*.
 
 # GitHub
 keystore.properties
+
+# Temporary scratch space
+scratch/
