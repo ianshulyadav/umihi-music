@@ -50,7 +50,7 @@ fun BottomToggleRow(
 
     Box(
         modifier = modifier
-            .height(48.dp)
+            .height(56.dp)
             .background(
                 color = containerColor,
                 shape = RoundedCornerShape(rowCorners)
@@ -59,7 +59,7 @@ fun BottomToggleRow(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(4.dp)
+                .padding(6.dp)
                 .clip(RoundedCornerShape(rowCorners))
                 .background(Color.Transparent),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -75,6 +75,7 @@ fun BottomToggleRow(
                 activeContentColor = onActiveColorMain,
                 inactiveColor = Color.Transparent,
                 inactiveContentColor = inactiveContentColor,
+                iconSize = 26.dp,
                 onClick = onShuffleToggle,
                 imageVector = Icons.Rounded.Shuffle,
                 contentDesc = "Shuffle"
@@ -93,6 +94,7 @@ fun BottomToggleRow(
                 activeContentColor = onActiveColorSecondary,
                 inactiveColor = Color.Transparent,
                 inactiveContentColor = inactiveContentColor,
+                iconSize = 26.dp,
                 onClick = onRepeatToggle,
                 imageVector = repeatIcon,
                 contentDesc = "Repeat"
@@ -105,6 +107,7 @@ fun BottomToggleRow(
                 activeContentColor = onActiveColorTertiary,
                 inactiveColor = Color.Transparent,
                 inactiveContentColor = inactiveContentColor,
+                iconSize = 26.dp,
                 onClick = onFavoriteToggle,
                 imageVector = if (isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                 contentDesc = "Favorite"

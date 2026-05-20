@@ -95,10 +95,6 @@ fun MiniPlayer(
             // Circle Album Art
             Box(
                 modifier = Modifier
-                    .sharedElement(
-                        sharedContentState = rememberSharedContentState(key = "player_artwork"),
-                        animatedVisibilityScope = animatedVisibilityScope
-                    )
                     .size(48.dp)
                     .clip(CircleShape)
             ) {
@@ -137,11 +133,6 @@ fun MiniPlayer(
                     color = onContainerColor,
                     maxLines = 1,
                     modifier = Modifier
-                        .sharedBounds(
-                            sharedContentState = rememberSharedContentState(key = "player_title"),
-                            animatedVisibilityScope = animatedVisibilityScope,
-                            resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
-                        )
                         .basicMarquee()
                 )
                 Text(

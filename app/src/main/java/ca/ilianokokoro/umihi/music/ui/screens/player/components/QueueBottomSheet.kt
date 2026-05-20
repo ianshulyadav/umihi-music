@@ -351,8 +351,8 @@ fun QueueBottomSheet(
             // Unified Scrim and Floating Options Menu Overlay
             androidx.compose.animation.AnimatedVisibility(
                 visible = isFabExpanded,
-                enter = androidx.compose.animation.fadeIn(animationSpec = tween(250)),
-                exit = androidx.compose.animation.fadeOut(animationSpec = tween(250)),
+                enter = androidx.compose.animation.fadeIn(animationSpec = tween(200)),
+                exit = androidx.compose.animation.fadeOut(animationSpec = tween(200)),
                 modifier = Modifier
                     .fillMaxSize()
                     .zIndex(30f)
@@ -367,19 +367,41 @@ fun QueueBottomSheet(
                         ) {
                             isFabExpanded = false
                         },
-                    contentAlignment = Alignment.BottomCenter
+                    contentAlignment = Alignment.BottomEnd
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .wrapContentWidth(Alignment.CenterHorizontally)
-                            .padding(bottom = 110.dp)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) { /* Block clicks to scrim */ },
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = isFabExpanded,
+                        enter = androidx.compose.animation.scaleIn(
+                            initialScale = 0.8f,
+                            transformOrigin = androidx.compose.ui.graphics.TransformOrigin(1f, 1f),
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
+                        ) + androidx.compose.animation.slideInVertically(
+                            initialOffsetY = { it / 4 },
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
+                        ) + androidx.compose.animation.fadeIn(),
+                        exit = androidx.compose.animation.scaleOut(
+                            targetScale = 0.8f,
+                            transformOrigin = androidx.compose.ui.graphics.TransformOrigin(1f, 1f),
+                            animationSpec = tween(150)
+                        ) + androidx.compose.animation.fadeOut(),
+                        modifier = Modifier.padding(bottom = 110.dp, end = 24.dp)
                     ) {
+                        Column(
+                            modifier = Modifier
+                                .wrapContentWidth(Alignment.End)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { /* Block clicks to scrim */ },
+                            horizontalAlignment = Alignment.End,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
                         QueueToolbarMenuButton(
                             text = "Clear Queue",
                             icon = Icons.Rounded.Delete,
@@ -400,6 +422,7 @@ fun QueueBottomSheet(
                                 showSavePlaylistDialog = true
                             }
                         )
+                        }
                     }
                 }
             }

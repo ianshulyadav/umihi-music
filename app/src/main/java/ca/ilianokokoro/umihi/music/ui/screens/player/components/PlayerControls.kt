@@ -67,7 +67,7 @@ fun PlayerControls(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Lyrics Button above the progress seekbar on the very left
+        // Lyrics Button above the progress seekbar on the very right
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -75,7 +75,7 @@ fun PlayerControls(
                     alpha = secondaryAlpha
                     translationY = secondaryOffsetY
                 },
-            horizontalArrangement = Arrangement.Start,
+            horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
             androidx.compose.material3.IconButton(

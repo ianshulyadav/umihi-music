@@ -488,22 +488,7 @@ fun Thumbnail(
                 label = "albumCornerRadius"
             )
 
-            val artworkModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
-                with(sharedTransitionScope) {
-                    Modifier.sharedElement(
-                        sharedContentState = rememberSharedContentState(key = "player_artwork"),
-                        animatedVisibilityScope = animatedVisibilityScope,
-                        boundsTransform = { _, _ ->
-                            spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessLow
-                            )
-                        }
-                    )
-                }
-            } else {
-                Modifier
-            }
+            val artworkModifier = Modifier
 
             SquareImage(
                 uri = targetState,
@@ -527,17 +512,7 @@ fun SongInfo(
         verticalArrangement = Arrangement.spacedBy(4.dp),
         horizontalAlignment = Alignment.Start
     ) {
-        val titleModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
-            with(sharedTransitionScope) {
-                Modifier.sharedBounds(
-                    sharedContentState = rememberSharedContentState(key = "player_title"),
-                    animatedVisibilityScope = animatedVisibilityScope,
-                    resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
-                )
-            }
-        } else {
-            Modifier
-        }
+        val titleModifier = Modifier
 
         Text(
             text = song?.title ?: "",
@@ -568,17 +543,17 @@ fun TopPlayerHeader(
     modifier: Modifier = Modifier
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    Row(
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 4.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center
     ) {
         // Back / Dropdown Arrow button
         androidx.compose.material3.IconButton(
             onClick = onBack,
             modifier = Modifier
+                .align(Alignment.CenterStart)
                 .size(44.dp)
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f), CircleShape)
         ) {
@@ -590,18 +565,20 @@ fun TopPlayerHeader(
             )
         }
 
-        // Title
+        // Title (Perfectly Centered)
         Text(
             text = "Now Playing",
             style = MaterialTheme.typography.titleMedium.copy(
                 fontFamily = ca.ilianokokoro.umihi.music.ui.theme.GoogleSansRounded,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
-            )
+            ),
+            modifier = Modifier.align(Alignment.Center)
         )
 
         // Actions Row (Bluetooth/Cast & Queue)
         Row(
+            modifier = Modifier.align(Alignment.CenterEnd),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
