@@ -45,8 +45,8 @@ fun BottomToggleRow(
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainer
 ) {
     val isFavorite = isFavoriteProvider()
-    val rowCorners = 24.dp
-    val buttonCorners = 12.dp
+    val rowCorners = 28.dp
+    val buttonCorners = 24.dp
 
     Box(
         modifier = modifier

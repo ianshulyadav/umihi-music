@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 
 @Composable
 fun PlayerControls(
+    song: ca.ilianokokoro.umihi.music.models.Song?,
     isPlaying: Boolean,
     isLoading: Boolean,
     progress: PlaybackProgress,
@@ -50,6 +51,9 @@ fun PlayerControls(
     onToggleLyrics: () -> Unit,
     isFavorite: Boolean,
     onFavoriteToggle: () -> Unit,
+    audioFormat: String? = null,
+    audioSize: String? = null,
+    audioBitrate: String? = null,
     modifier: Modifier = Modifier,
     progressAlpha: Float = 1f,
     progressOffsetY: Float = 0f,
@@ -62,12 +66,65 @@ fun PlayerControls(
     val repeatMode = ComposeHelper.rememberRepeatMode(player)
     val isShuffleEnabled = player?.shuffleModeEnabled ?: false
 
+    // Color theme logic
+    val isDark = ca.ilianokokoro.umihi.music.ui.theme.LocalPixelPlayDarkTheme.current
+    val albumColorSchemePair = ca.ilianokokoro.umihi.music.ui.theme.LocalAlbumColorScheme.current
+    val activeScheme = albumColorSchemePair?.let { if (isDark) it.dark else it.light }
+
+    val colorPrevNext = when {
+        activeScheme != null -> {
+            if (isDark) {
+                activeScheme.surfaceContainerHigh
+            } else {
+                activeScheme.primary
+            }
+        }
+        else -> MaterialTheme.colorScheme.secondaryContainer
+    }
+
+    val tintPrevNextIcon = when {
+        activeScheme != null -> {
+            if (isDark) {
+                activeScheme.onSurface
+            } else {
+                activeScheme.onPrimary
+            }
+        }
+        else -> MaterialTheme.colorScheme.onSecondaryContainer
+    }
+
+    val colorPlayPause = when {
+        activeScheme != null -> {
+            activeScheme.primaryContainer
+        }
+        else -> MaterialTheme.colorScheme.primary
+    }
+
+    val tintPlayPauseIcon = when {
+        activeScheme != null -> {
+            activeScheme.onPrimaryContainer
+        }
+        else -> MaterialTheme.colorScheme.onPrimary
+    }
+
+    val activeColorMain = activeScheme?.surfaceVariant ?: MaterialTheme.colorScheme.surfaceVariant
+    val onActiveColorMain = activeScheme?.onSurfaceVariant ?: MaterialTheme.colorScheme.onSurfaceVariant
+
+    val activeColorSecondary = activeScheme?.secondaryContainer ?: MaterialTheme.colorScheme.secondaryContainer
+    val onActiveColorSecondary = activeScheme?.onSecondaryContainer ?: MaterialTheme.colorScheme.onSecondaryContainer
+
+    val activeColorTertiary = activeScheme?.tertiaryContainer ?: MaterialTheme.colorScheme.tertiaryContainer
+    val onActiveColorTertiary = activeScheme?.onTertiaryContainer ?: MaterialTheme.colorScheme.onTertiaryContainer
+
+    val rowContainerColor = activeScheme?.surface ?: MaterialTheme.colorScheme.surface
+    val inactiveContentColor = (activeScheme?.onSurfaceVariant ?: MaterialTheme.colorScheme.onSurfaceVariant).copy(alpha = 0.6f)
+
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Lyrics Button above the progress seekbar on the very right
+        // Metadata Title/Artist & Lyrics row
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -75,20 +132,46 @@ fun PlayerControls(
                     alpha = secondaryAlpha
                     translationY = secondaryOffsetY
                 },
-            horizontalArrangement = Arrangement.End,
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                horizontalAlignment = Alignment.Start
+            ) {
+                Text(
+                    text = song?.title ?: "",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontFamily = GoogleSansRounded,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                    modifier = Modifier.basicMarquee()
+                )
+                Text(
+                    text = song?.artist ?: "",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontFamily = GoogleSansRounded,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    modifier = Modifier.basicMarquee()
+                )
+            }
+
+            // Lyrics button
             androidx.compose.material3.IconButton(
                 onClick = onToggleLyrics,
                 modifier = Modifier
-                    .size(40.dp)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape)
+                    .size(44.dp)
+                    .background(MaterialTheme.colorScheme.surface, CircleShape)
             ) {
                 androidx.compose.material3.Icon(
                     imageVector = Icons.Rounded.Lyrics,
                     contentDescription = "Lyrics",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
@@ -102,7 +185,7 @@ fun PlayerControls(
                     translationY = progressOffsetY
                 }
         ) {
-            // Expressive Wavy Slider from PixelPlayer
+            // Expressive Wavy Slider
             WavySliderExpressive(
                 value = progress.position,
                 valueRange = 0f..progress.duration.coerceAtLeast(1f),
@@ -115,12 +198,16 @@ fun PlayerControls(
                     onSeekPlayer()
                     onUpdateSeekBarHeldState(false)
                 },
+                activeTrackColor = colorPrevNext,
+                inactiveTrackColor = colorPrevNext.copy(alpha = 0.15f),
+                thumbColor = colorPrevNext,
                 modifier = Modifier.padding(top = 10.dp)
             )
 
-            // Time labels
+            // Time labels + central format badge
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 4.dp)
@@ -133,6 +220,30 @@ fun PlayerControls(
                     ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                // Quality Badge (e.g. FLAC / Opus / M4A + Size)
+                val format = audioFormat ?: "Opus"
+                val size = audioSize ?: ""
+                val badgeText = if (size.isNotEmpty()) "$format • $size" else format
+
+                Box(
+                    modifier = Modifier
+                        .background(
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = badgeText,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontFamily = GoogleSansRounded,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    )
+                }
+
                 Text(
                     text = progress.duration.toTimeString(),
                     style = MaterialTheme.typography.labelMedium.copy(
@@ -144,7 +255,7 @@ fun PlayerControls(
             }
         }
 
-        // Animated Playback Controls from PixelPlayer (Slightly smaller, 70.dp height)
+        // Playback Controls (Previous / Play-Pause / Next)
         AnimatedPlaybackControls(
             isPlayingProvider = { isPlaying },
             onPrevious = { PlayerManager.currentController?.seekToPrevious() },
@@ -156,15 +267,23 @@ fun PlayerControls(
                 }
             },
             onNext = { PlayerManager.currentController?.seekToNext() },
-            height = 70.dp,
-            playPauseIconSize = 26.dp,
-            iconSize = 22.dp,
+            height = 80.dp,
+            playPauseCornerPlaying = 24.dp,
+            playPauseCornerPaused = 24.dp,
+            colorPreviousButton = colorPrevNext,
+            colorNextButton = colorPrevNext,
+            tintPreviousIcon = tintPrevNextIcon,
+            tintNextIcon = tintPrevNextIcon,
+            colorPlayPause = colorPlayPause,
+            tintPlayPauseIcon = tintPlayPauseIcon,
+            playPauseIconSize = 32.dp,
+            iconSize = 26.dp,
             pressAnimationSpec = spring(
                 dampingRatio = Spring.DampingRatioNoBouncy,
                 stiffness = Spring.StiffnessMediumLow
             ),
             modifier = Modifier
-                .padding(vertical = 10.dp)
+                .padding(vertical = 12.dp)
                 .graphicsLayer {
                     alpha = controlsAlpha
                     translationY = controlsOffsetY
@@ -183,10 +302,18 @@ fun PlayerControls(
             verticalAlignment = Alignment.CenterVertically
         ) {
             BottomToggleRow(
-                modifier = Modifier.fillMaxWidth(0.85f),
+                modifier = Modifier.fillMaxWidth(0.9f),
                 isShuffleEnabled = isShuffleEnabled,
                 repeatMode = repeatMode,
                 isFavoriteProvider = { isFavorite },
+                activeColorMain = activeColorMain,
+                onActiveColorMain = onActiveColorMain,
+                activeColorSecondary = activeColorSecondary,
+                onActiveColorSecondary = onActiveColorSecondary,
+                activeColorTertiary = activeColorTertiary,
+                onActiveColorTertiary = onActiveColorTertiary,
+                containerColor = rowContainerColor,
+                inactiveContentColor = inactiveContentColor,
                 onShuffleToggle = {
                     PlayerManager.currentController?.let {
                         it.shuffleModeEnabled = !it.shuffleModeEnabled

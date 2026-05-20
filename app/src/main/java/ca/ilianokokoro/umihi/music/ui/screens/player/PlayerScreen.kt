@@ -316,19 +316,8 @@ fun PlayerScreen(
                     horizontalAlignment = Alignment.Start,
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Box(
-                        modifier = Modifier.graphicsLayer {
-                            alpha = contentAlpha
-                            translationY = contentOffsetY
-                        }
-                    ) {
-                        SongInfo(
-                            song = currentSong,
-                            sharedTransitionScope = sharedTransitionScope,
-                            animatedVisibilityScope = animatedVisibilityScope
-                        )
-                    }
                     PlayerControls(
+                        song = currentSong,
                         isPlaying = uiState.isPlaying,
                         isLoading = uiState.isLoading,
                         progress = uiState.playbackProgress,
@@ -343,6 +332,9 @@ fun PlayerScreen(
                         },
                         isFavorite = uiState.isFavorite,
                         onFavoriteToggle = playerViewModel::toggleFavorite,
+                        audioFormat = uiState.audioFormat,
+                        audioSize = uiState.audioSize,
+                        audioBitrate = uiState.audioBitrate,
                         progressAlpha = progressAlpha,
                         progressOffsetY = progressOffsetY,
                         controlsAlpha = controlsAlpha,
@@ -392,19 +384,8 @@ fun PlayerScreen(
                             .padding(horizontal = 32.dp),
                         verticalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        Box(
-                            modifier = Modifier.graphicsLayer {
-                                alpha = contentAlpha
-                                translationY = contentOffsetY
-                            }
-                        ) {
-                            SongInfo(
-                                song = currentSong,
-                                sharedTransitionScope = sharedTransitionScope,
-                                animatedVisibilityScope = animatedVisibilityScope
-                            )
-                        }
                         PlayerControls(
+                            song = currentSong,
                             isPlaying = uiState.isPlaying,
                             isLoading = uiState.isLoading,
                             progress = uiState.playbackProgress,
@@ -419,6 +400,9 @@ fun PlayerScreen(
                             },
                             isFavorite = uiState.isFavorite,
                             onFavoriteToggle = playerViewModel::toggleFavorite,
+                            audioFormat = uiState.audioFormat,
+                            audioSize = uiState.audioSize,
+                            audioBitrate = uiState.audioBitrate,
                             progressAlpha = progressAlpha,
                             progressOffsetY = progressOffsetY,
                             controlsAlpha = controlsAlpha,
@@ -555,12 +539,12 @@ fun TopPlayerHeader(
             modifier = Modifier
                 .align(Alignment.CenterStart)
                 .size(44.dp)
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f), CircleShape)
+                .background(MaterialTheme.colorScheme.surface, CircleShape)
         ) {
             androidx.compose.material3.Icon(
                 imageVector = Icons.Rounded.KeyboardArrowDown,
                 contentDescription = "Go Back",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(28.dp)
             )
         }
@@ -605,13 +589,13 @@ fun TopPlayerHeader(
                 },
                 modifier = Modifier
                     .size(44.dp)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f), CircleShape)
+                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(14.dp))
             ) {
                 androidx.compose.material3.Icon(
                     imageVector = Icons.Rounded.Cast,
                     contentDescription = "Connect Device",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(22.dp)
                 )
             }
 
@@ -620,13 +604,13 @@ fun TopPlayerHeader(
                 onClick = onOpenQueue,
                 modifier = Modifier
                     .size(44.dp)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f), CircleShape)
+                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(14.dp))
             ) {
                 androidx.compose.material3.Icon(
                     imageVector = Icons.AutoMirrored.Rounded.QueueMusic,
                     contentDescription = "Open Queue",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(22.dp)
                 )
             }
         }
