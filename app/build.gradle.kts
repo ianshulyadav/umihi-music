@@ -49,10 +49,17 @@ android {
 
     signingConfigs {
         create("release") {
-            keyAlias = keystoreProperties["keyAlias"] as String
-            keyPassword = keystoreProperties["keyPassword"] as String
-            storeFile = file(keystoreProperties["storeFile"] as String)
-            storePassword = keystoreProperties["storePassword"] as String
+            val alias = keystoreProperties["keyAlias"] as? String ?: ""
+            val password = keystoreProperties["keyPassword"] as? String ?: ""
+            val storeFileVal = keystoreProperties["storeFile"] as? String ?: ""
+            val storePasswordVal = keystoreProperties["storePassword"] as? String ?: ""
+
+            keyAlias = alias
+            keyPassword = password
+            if (storeFileVal.isNotEmpty()) {
+                storeFile = file(storeFileVal)
+            }
+            storePassword = storePasswordVal
         }
     }
 
@@ -65,7 +72,15 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("release")
+            val releaseConfig = signingConfigs.findByName("release")
+            val releaseKeyFile = releaseConfig?.storeFile
+            val hasValidAlias = !(keystoreProperties["keyAlias"] as? String).isNullOrBlank()
+
+            if (releaseKeyFile != null && releaseKeyFile.exists() && releaseKeyFile.length() > 100 && hasValidAlias) {
+                signingConfig = releaseConfig
+            } else {
+                signingConfig = signingConfigs.getByName("debug")
+            }
         }
     }
 

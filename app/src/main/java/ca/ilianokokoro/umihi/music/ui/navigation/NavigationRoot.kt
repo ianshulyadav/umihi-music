@@ -9,6 +9,8 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -47,7 +49,9 @@ import ca.ilianokokoro.umihi.music.ui.screens.player.PlayerScreen
 import ca.ilianokokoro.umihi.music.ui.screens.playlist.PlaylistScreen
 import ca.ilianokokoro.umihi.music.ui.screens.search.SearchScreen
 import ca.ilianokokoro.umihi.music.ui.screens.settings.SettingsScreen
-
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,36 +61,47 @@ fun NavigationRoot(modifier: Modifier = Modifier) {
     val currentScreen = backStack.last()
     val screenConfig = rememberScreenUiConfig(currentScreen)
 
+    val context = LocalContext.current
+    val datastoreRepository = remember { ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository(context) }
+    val settings by datastoreRepository.settings.collectAsState(
+        initial = ca.ilianokokoro.umihi.music.models.UmihiSettings(
+            cookies = ca.ilianokokoro.umihi.music.models.Cookies(""),
+            dataSyncId = ""
+        )
+    )
+
     Scaffold(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
 
         topBar = {
-            TopAppBar(
-                title = {
-                    val hasTitle = screenConfig.titleId != 0 || screenConfig.title.isNotBlank()
+            if (currentScreen != PlayerScreenKey) {
+                TopAppBar(
+                    title = {
+                        val hasTitle = screenConfig.titleId != 0 || screenConfig.title.isNotBlank()
 
-                    AnimatedVisibility(
-                        visible = hasTitle,
-                        enter = fadeIn(tween(Constants.Animation.NAVIGATION_DURATION)),
-                        exit = fadeOut(tween(Constants.Animation.NAVIGATION_DURATION))
-                    ) {
-                        when {
-                            screenConfig.titleId != 0 ->
-                                Text(stringResource(screenConfig.titleId))
+                        AnimatedVisibility(
+                            visible = hasTitle,
+                            enter = fadeIn(tween(Constants.Animation.NAVIGATION_DURATION)),
+                            exit = fadeOut(tween(Constants.Animation.NAVIGATION_DURATION))
+                        ) {
+                            when {
+                                screenConfig.titleId != 0 ->
+                                    Text(stringResource(screenConfig.titleId))
 
-                            screenConfig.title.isNotBlank() ->
-                                Text(screenConfig.title)
+                                screenConfig.title.isNotBlank() ->
+                                    Text(screenConfig.title)
+                            }
+                        }
+                    },
+                    navigationIcon = {
+                        if (screenConfig.showBack) {
+                            BackButton(onBack = backStack::safePop)
                         }
                     }
-                },
-                navigationIcon = {
-                    if (screenConfig.showBack) {
-                        BackButton(onBack = backStack::safePop)
-                    }
-                }
-            )
+                )
+            }
         },
         bottomBar = {
             Column {
@@ -137,40 +152,82 @@ fun NavigationRoot(modifier: Modifier = Modifier) {
                     rememberViewModelStoreNavEntryDecorator(),
                 ),
                 transitionSpec = {
-                    (scaleIn(
-                        animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
-                        initialScale = 0.85f
-                    ) +
-                            fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))) togetherWith
-                            (scaleOut(
-                                animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
-                                targetScale = 1.1f
-                            ) +
-                                    fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)))
+                    val isEnteringPlayer = targetState.key == PlayerScreenKey
+                    val isExitingPlayer = initialState.key == PlayerScreenKey
+                    if (isEnteringPlayer) {
+                        slideInVertically(
+                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
+                            initialOffsetY = { it }
+                        ) + fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
+                        fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
+                    } else if (isExitingPlayer) {
+                        fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
+                        slideOutVertically(
+                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
+                            targetOffsetY = { it }
+                        ) + fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
+                    } else {
+                        slideInHorizontally(
+                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
+                            initialOffsetX = { it }
+                        ) + fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
+                        slideOutHorizontally(
+                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
+                            targetOffsetX = { -it / 3 }
+                        ) + fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
+                    }
                 },
                 popTransitionSpec = {
-                    (scaleIn(
-                        animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
-                        initialScale = 1.1f
-                    ) +
-                            fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))) togetherWith
-                            (scaleOut(
-                                animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
-                                targetScale = 0.85f
-                            ) +
-                                    fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)))
+                    val isEnteringPlayer = targetState.key == PlayerScreenKey
+                    val isExitingPlayer = initialState.key == PlayerScreenKey
+                    if (isEnteringPlayer) {
+                        slideInVertically(
+                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
+                            initialOffsetY = { -it }
+                        ) + fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
+                        fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
+                    } else if (isExitingPlayer) {
+                        fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
+                        slideOutVertically(
+                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
+                            targetOffsetY = { it }
+                        ) + fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
+                    } else {
+                        slideInHorizontally(
+                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
+                            initialOffsetX = { -it / 3 }
+                        ) + fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
+                        slideOutHorizontally(
+                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
+                            targetOffsetX = { it }
+                        ) + fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
+                    }
                 },
                 predictivePopTransitionSpec = {
-                    (scaleIn(
-                        animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
-                        initialScale = 1.1f
-                    ) +
-                            fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))) togetherWith
-                            (scaleOut(
-                                animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
-                                targetScale = 0.85f
-                            ) +
-                                    fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)))
+                    val isEnteringPlayer = targetState.key == PlayerScreenKey
+                    val isExitingPlayer = initialState.key == PlayerScreenKey
+                    if (isEnteringPlayer) {
+                        slideInVertically(
+                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
+                            initialOffsetY = { -it }
+                        ) + fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
+                        fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
+                    } else if (isExitingPlayer) {
+                        fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
+                        slideOutVertically(
+                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
+                            targetOffsetY = { it }
+                        ) + fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
+                    } else {
+                        slideInHorizontally(
+                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
+                            initialOffsetX = { -it / 3 }
+                        ) + fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
+                        slideOutHorizontally(
+                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
+                            targetOffsetX = { it }
+                        ) + fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
+                    }
                 },
                 entryProvider = { key ->
                     when (key) {
@@ -210,10 +267,23 @@ fun NavigationRoot(modifier: Modifier = Modifier) {
                             key,
                             metadata = Constants.Animation.SLIDE_UP_TRANSITION
                         ) {
-                            PlayerScreen(
-                                onBack = backStack::safePop,
-                                application = app
-                            )
+                            val albumScheme = ca.ilianokokoro.umihi.music.ui.theme.LocalAlbumColorScheme.current
+                            if (settings.playerThemePreference == "PLAYDYNAMIC" && albumScheme != null) {
+                                ca.ilianokokoro.umihi.music.ui.theme.UmihiMusicTheme(
+                                    dynamicColor = false,
+                                    colorSchemePairOverride = albumScheme
+                                ) {
+                                    PlayerScreen(
+                                        onBack = backStack::safePop,
+                                        application = app
+                                    )
+                                }
+                            } else {
+                                PlayerScreen(
+                                    onBack = backStack::safePop,
+                                    application = app
+                                )
+                            }
                         }
 
                         is SearchScreenKey -> NavEntry(key) {

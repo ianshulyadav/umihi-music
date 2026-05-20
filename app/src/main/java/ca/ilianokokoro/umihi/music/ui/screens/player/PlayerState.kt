@@ -15,7 +15,8 @@ data class PlayerState(
     val isLoadingLyrics: Boolean = false,
     val lyrics: ca.ilianokokoro.umihi.music.ui.screens.player.lyrics.Lyrics? = null,
     val useAnimatedLyrics: Boolean = true,
-    val animatedLyricsBlurEnabled: Boolean = true
+    val animatedLyricsBlurEnabled: Boolean = true,
+    val isFavorite: Boolean = false
 )
 
 data class PlaybackProgress(

@@ -47,19 +47,40 @@ fun PlayerControls(
     onSeek: (location: Float) -> Unit,
     onOpenQueue: () -> Unit,
     onToggleLyrics: () -> Unit,
+    isFavorite: Boolean,
+    onFavoriteToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val player by PlayerManager.controllerState.collectAsState()
     val repeatMode = ComposeHelper.rememberRepeatMode(player)
     val isShuffleEnabled = player?.shuffleModeEnabled ?: false
 
-    var isFavorite by remember { mutableStateOf(false) }
-
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Lyrics Button above the progress seekbar on the very left
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Start,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            androidx.compose.material3.IconButton(
+                onClick = onToggleLyrics,
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape)
+            ) {
+                androidx.compose.material3.Icon(
+                    imageVector = Icons.Rounded.Lyrics,
+                    contentDescription = "Lyrics",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+
         // Expressive Wavy Slider from PixelPlayer
         WavySliderExpressive(
             value = progress.position,
@@ -123,15 +144,14 @@ fun PlayerControls(
             modifier = Modifier.padding(vertical = 10.dp)
         )
 
-        // Toggle Buttons Row (Shuffle, Repeat, Favorite, Connect Device, Lyrics, Queue)
+        // Centered Shuffle/Repeat/Favorite Toggle Bar
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Shuffle/Repeat/Favorite Toggle Bar
             BottomToggleRow(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.fillMaxWidth(0.85f),
                 isShuffleEnabled = isShuffleEnabled,
                 repeatMode = repeatMode,
                 isFavoriteProvider = { isFavorite },
@@ -150,79 +170,8 @@ fun PlayerControls(
                         }
                     }
                 },
-                onFavoriteToggle = { isFavorite = !isFavorite }
+                onFavoriteToggle = onFavoriteToggle
             )
-
-            // Right-aligned actions row (Connect Device, Lyrics, Queue)
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Connect Device Button
-                val context = androidx.compose.ui.platform.LocalContext.current
-                androidx.compose.material3.IconButton(
-                    onClick = {
-                        val intent = android.content.Intent().apply {
-                            action = "com.android.settings.PLAYBACK_MEDIA_OUTPUT"
-                            putExtra("package_name", context.packageName)
-                            flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
-                        }
-                        try {
-                            context.startActivity(intent)
-                        } catch (e: Exception) {
-                            try {
-                                val intentFallback = android.content.Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS).apply {
-                                    flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
-                                }
-                                context.startActivity(intentFallback)
-                            } catch (ex: Exception) {
-                                ex.printStackTrace()
-                            }
-                        }
-                    },
-                    modifier = Modifier
-                        .size(44.dp)
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape)
-                ) {
-                    androidx.compose.material3.Icon(
-                        imageVector = Icons.Rounded.Cast,
-                        contentDescription = "Connect Device",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                // Lyrics Button
-                androidx.compose.material3.IconButton(
-                    onClick = onToggleLyrics,
-                    modifier = Modifier
-                        .size(44.dp)
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape)
-                ) {
-                    androidx.compose.material3.Icon(
-                        imageVector = Icons.Rounded.Lyrics,
-                        contentDescription = "Lyrics",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                // Queue Button (Styled slightly upper/taller as per request or aligned nicely)
-                androidx.compose.material3.IconButton(
-                    onClick = onOpenQueue,
-                    modifier = Modifier
-                        .size(44.dp)
-                        .offset(y = (-6).dp)
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape)
-                ) {
-                    androidx.compose.material3.Icon(
-                        imageVector = androidx.compose.material.icons.Icons.AutoMirrored.Rounded.QueueMusic,
-                        contentDescription = "Open Queue",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
         }
     }
 }

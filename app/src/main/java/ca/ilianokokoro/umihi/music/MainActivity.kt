@@ -66,6 +66,13 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val settingsRepository = remember { DatastoreRepository(context) }
+            val settings by settingsRepository.settings.collectAsState(initial = ca.ilianokokoro.umihi.music.models.UmihiSettings(
+                cookies = ca.ilianokokoro.umihi.music.models.Cookies(""),
+                dataSyncId = ""
+            ))
+
             val controller by PlayerManager.controllerState.collectAsState()
             var colorSchemeOverride by remember { mutableStateOf<ColorSchemePair?>(null) }
 
@@ -116,11 +123,32 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            UmihiMusicTheme(colorSchemePairOverride = colorSchemeOverride) {
-                NavigationRoot(
-                    modifier = Modifier.fillMaxSize(),
-                )
-                UpdateDialog(lifecycleScope)
+            val finalColorSchemeOverride = if (settings.playerThemePreference == "ALBUM_ART") {
+                colorSchemeOverride
+            } else {
+                null
+            }
+
+            val dynamicColorEnabled = settings.playerThemePreference == "DYNAMIC"
+
+            val albumColorSchemeForLocal = if (settings.playerThemePreference == "PLAYDYNAMIC" || settings.playerThemePreference == "ALBUM_ART") {
+                colorSchemeOverride
+            } else {
+                null
+            }
+
+            androidx.compose.runtime.CompositionLocalProvider(
+                ca.ilianokokoro.umihi.music.ui.theme.LocalAlbumColorScheme provides albumColorSchemeForLocal
+            ) {
+                UmihiMusicTheme(
+                    dynamicColor = dynamicColorEnabled,
+                    colorSchemePairOverride = finalColorSchemeOverride
+                ) {
+                    NavigationRoot(
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    UpdateDialog(lifecycleScope)
+                }
             }
         }
 

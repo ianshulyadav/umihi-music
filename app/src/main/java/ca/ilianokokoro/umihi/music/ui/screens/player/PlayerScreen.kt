@@ -45,6 +45,11 @@ import ca.ilianokokoro.umihi.music.ui.components.SquareImage
 import ca.ilianokokoro.umihi.music.ui.screens.player.components.PlayerControls
 import ca.ilianokokoro.umihi.music.ui.screens.player.components.QueueBottomSheet
 import ca.ilianokokoro.umihi.music.ui.screens.player.components.LyricsSheet
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.Cast
+import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 
 @Composable
 fun PlayerScreen(
@@ -94,6 +99,11 @@ fun PlayerScreen(
                 },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            TopPlayerHeader(
+                onBack = onBack,
+                onOpenQueue = { playerViewModel.setQueueVisibility(true) }
+            )
+
             Thumbnail(
                 href = currentSong?.thumbnailHref.toString(),
                 isPlaying = uiState.isPlaying,
@@ -122,68 +132,78 @@ fun PlayerScreen(
                     },
                     onToggleLyrics = {
                         playerViewModel.toggleLyricsVisibility(true)
-                    }
+                    },
+                    isFavorite = uiState.isFavorite,
+                    onFavoriteToggle = playerViewModel::toggleFavorite
                 )
             }
         }
 
     } else if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
-        Row(
+        Column(
             modifier = modifier
-                .padding(8.dp)
                 .fillMaxSize()
-                .pointerInput(Unit) {
-                    detectVerticalDragGestures(
-                        onDragEnd = {},
-                        onVerticalDrag = { change, dragAmount ->
-                            change.consume()
-                            if (dragAmount < -15) {
-                                playerViewModel.setQueueVisibility(true)
-                            } else if (dragAmount > 15) {
-                                playerViewModel.setQueueVisibility(false)
-                            }
-                        }
-                    )
-                },
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceEvenly
-
+                .background(MaterialTheme.colorScheme.background)
         ) {
-
-            Thumbnail(
-                href = currentSong?.thumbnailHref.toString(),
-                isPlaying = uiState.isPlaying,
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .weight(1f)
+            TopPlayerHeader(
+                onBack = onBack,
+                onOpenQueue = { playerViewModel.setQueueVisibility(true) }
             )
-
-            Column(
+            Row(
                 modifier = Modifier
-                    .fillMaxHeight()
+                    .fillMaxWidth()
                     .weight(1f)
-                    .padding(horizontal = 32.dp),
-                verticalArrangement = Arrangement.SpaceEvenly
-            ) {
-                SongInfo(currentSong)
-                PlayerControls(
-                    isPlaying = uiState.isPlaying,
-                    isLoading = uiState.isLoading,
-                    progress = uiState.playbackProgress,
-                    onSeek = playerViewModel::seek,
-                    onSeekPlayer = playerViewModel::seekPlayer,
-                    onUpdateSeekBarHeldState = playerViewModel::updateSeekBarHeldState,
-                    onOpenQueue = {
-                        playerViewModel.setQueueVisibility(true)
+                    .pointerInput(Unit) {
+                        detectVerticalDragGestures(
+                            onDragEnd = {},
+                            onVerticalDrag = { change, dragAmount ->
+                                change.consume()
+                                if (dragAmount < -15) {
+                                    playerViewModel.setQueueVisibility(true)
+                                } else if (dragAmount > 15) {
+                                    playerViewModel.setQueueVisibility(false)
+                                }
+                            }
+                        )
                     },
-                    onToggleLyrics = {
-                        playerViewModel.toggleLyricsVisibility(true)
-                    }
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Thumbnail(
+                    href = currentSong?.thumbnailHref.toString(),
+                    isPlaying = uiState.isPlaying,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .weight(1f)
                 )
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .weight(1f)
+                        .padding(horizontal = 32.dp),
+                    verticalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    SongInfo(currentSong)
+                    PlayerControls(
+                        isPlaying = uiState.isPlaying,
+                        isLoading = uiState.isLoading,
+                        progress = uiState.playbackProgress,
+                        onSeek = playerViewModel::seek,
+                        onSeekPlayer = playerViewModel::seekPlayer,
+                        onUpdateSeekBarHeldState = playerViewModel::updateSeekBarHeldState,
+                        onOpenQueue = {
+                            playerViewModel.setQueueVisibility(true)
+                        },
+                        onToggleLyrics = {
+                            playerViewModel.toggleLyricsVisibility(true)
+                        },
+                        isFavorite = uiState.isFavorite,
+                        onFavoriteToggle = playerViewModel::toggleFavorite
+                    )
+                }
             }
-
         }
-
     }
 
 
@@ -271,5 +291,100 @@ fun SongInfo(song: Song?) {
             ),
             modifier = Modifier.basicMarquee()
         )
+    }
+}
+
+@Composable
+fun TopPlayerHeader(
+    onBack: () -> Unit,
+    onOpenQueue: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Back / Dropdown Arrow button
+        androidx.compose.material3.IconButton(
+            onClick = onBack,
+            modifier = Modifier
+                .size(44.dp)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f), CircleShape)
+        ) {
+            androidx.compose.material3.Icon(
+                imageVector = Icons.Rounded.KeyboardArrowDown,
+                contentDescription = "Go Back",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(28.dp)
+            )
+        }
+
+        // Title
+        Text(
+            text = "Now Playing",
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontFamily = ca.ilianokokoro.umihi.music.ui.theme.GoogleSansRounded,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        )
+
+        // Actions Row (Bluetooth/Cast & Queue)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Cast/Bluetooth (Connect device) Button
+            androidx.compose.material3.IconButton(
+                onClick = {
+                    val intent = android.content.Intent().apply {
+                        action = "com.android.settings.PLAYBACK_MEDIA_OUTPUT"
+                        putExtra("package_name", context.packageName)
+                        flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    try {
+                        context.startActivity(intent)
+                    } catch (e: Exception) {
+                        try {
+                            val intentFallback = android.content.Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS).apply {
+                                flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            context.startActivity(intentFallback)
+                        } catch (ex: Exception) {
+                            ex.printStackTrace()
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f), CircleShape)
+            ) {
+                androidx.compose.material3.Icon(
+                    imageVector = Icons.Rounded.Cast,
+                    contentDescription = "Connect Device",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            // Queue Button
+            androidx.compose.material3.IconButton(
+                onClick = onOpenQueue,
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f), CircleShape)
+            ) {
+                androidx.compose.material3.Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.QueueMusic,
+                    contentDescription = "Open Queue",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
     }
 }

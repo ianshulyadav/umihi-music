@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import ca.ilianokokoro.umihi.music.core.Constants
 import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.COOKIES
@@ -17,6 +18,10 @@ import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.Prefere
 import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.USE_SPECIAL_LANGUAGE
 import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.USE_ANIMATED_LYRICS
 import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.ANIMATED_LYRICS_BLUR_ENABLED
+import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.USE_IMMERSIVE_LYRICS
+import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.LYRICS_AUTOHIDE_DELAY
+import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.SHOW_PLAYER_FILE_INFO
+import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.PLAYER_THEME_PREFERENCE
 import ca.ilianokokoro.umihi.music.models.Cookies
 import ca.ilianokokoro.umihi.music.models.UmihiSettings
 import kotlinx.coroutines.flow.first
@@ -37,6 +42,10 @@ class DatastoreRepository(private val context: Context) {
         val KEEP_SCREEN_ON = booleanPreferencesKey(Constants.Datastore.KEEP_SCREEN_ON)
         val USE_ANIMATED_LYRICS = booleanPreferencesKey(Constants.Datastore.USE_ANIMATED_LYRICS)
         val ANIMATED_LYRICS_BLUR_ENABLED = booleanPreferencesKey(Constants.Datastore.ANIMATED_LYRICS_BLUR_ENABLED)
+        val USE_IMMERSIVE_LYRICS = booleanPreferencesKey("use_immersive_lyrics")
+        val LYRICS_AUTOHIDE_DELAY = intPreferencesKey("lyrics_autohide_delay")
+        val SHOW_PLAYER_FILE_INFO = booleanPreferencesKey("show_player_file_info")
+        val PLAYER_THEME_PREFERENCE = stringPreferencesKey("player_theme_preference")
     }
 
     suspend fun <T> save(key: Preferences.Key<T>, value: T) {
@@ -54,6 +63,10 @@ class DatastoreRepository(private val context: Context) {
         val keepScreenOn = it[KEEP_SCREEN_ON] ?: false
         val useAnimatedLyrics = it[USE_ANIMATED_LYRICS] ?: true
         val animatedLyricsBlurEnabled = it[ANIMATED_LYRICS_BLUR_ENABLED] ?: true
+        val useImmersiveLyrics = it[USE_IMMERSIVE_LYRICS] ?: true
+        val lyricsAutoHideDelay = it[LYRICS_AUTOHIDE_DELAY] ?: 4
+        val showPlayerFileInfo = it[SHOW_PLAYER_FILE_INFO] ?: false
+        val playerThemePreference = it[PLAYER_THEME_PREFERENCE] ?: "ALBUM_ART"
         val cookies = cookies.first()
         val dataSyncId = dataSyncId.first()
 
@@ -66,7 +79,11 @@ class DatastoreRepository(private val context: Context) {
             useAudioOffload = useAudioOffload,
             keepScreenOn = keepScreenOn,
             useAnimatedLyrics = useAnimatedLyrics,
-            animatedLyricsBlurEnabled = animatedLyricsBlurEnabled
+            animatedLyricsBlurEnabled = animatedLyricsBlurEnabled,
+            useImmersiveLyrics = useImmersiveLyrics,
+            lyricsAutoHideDelay = lyricsAutoHideDelay,
+            showPlayerFileInfo = showPlayerFileInfo,
+            playerThemePreference = playerThemePreference
         )
     }
 

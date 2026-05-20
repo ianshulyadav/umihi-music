@@ -51,13 +51,26 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
 
     }
 
+    private var searchJob: kotlinx.coroutines.Job? = null
+
     fun onSearchFieldChange(newValue: String) {
-        viewModelScope.launch {
-            _uiState.update {
-                it.copy(
-                    search = newValue
-                )
+        _uiState.update {
+            it.copy(
+                search = newValue
+            )
+        }
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            if (newValue.isBlank()) {
+                _uiState.update {
+                    it.copy(
+                        screenState = ScreenState.Success(results = listOf())
+                    )
+                }
+                return@launch
             }
+            kotlinx.coroutines.delay(300)
+            search()
         }
     }
 

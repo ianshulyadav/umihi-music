@@ -6,6 +6,8 @@ import com.github.kittinunf.fuel.core.extensions.jsonBody
 import com.github.kittinunf.fuel.httpPost
 import com.github.kittinunf.fuel.json.responseJson
 import com.github.kittinunf.result.Result
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 object YoutubeRequestHelper {
     fun browse(browseId: String, settings: UmihiSettings): String {
@@ -40,6 +42,54 @@ object YoutubeRequestHelper {
             idName = "query",
             id = query
         )
+    }
+
+    fun like(videoId: String, settings: UmihiSettings): String {
+        return requestWithTarget(
+            url = "https://www.youtube.com/youtubei/v1/like/like",
+            videoId = videoId,
+            settings = settings
+        )
+    }
+
+    fun removeLike(videoId: String, settings: UmihiSettings): String {
+        return requestWithTarget(
+            url = "https://www.youtube.com/youtubei/v1/like/removelike",
+            videoId = videoId,
+            settings = settings
+        )
+    }
+
+    private fun requestWithTarget(
+        url: String,
+        videoId: String,
+        settings: UmihiSettings
+    ): String {
+        val baseBody = YoutubeAuthHelper.buildContextBody(null, null, settings)
+        val body = kotlinx.serialization.json.buildJsonObject {
+            baseBody.forEach { (key, value) ->
+                put(key, value)
+            }
+            put("target", kotlinx.serialization.json.buildJsonObject {
+                put("videoId", videoId)
+            })
+        }
+
+        val headers = YoutubeAuthHelper.getHeaders(settings.cookies)
+
+        val (_, _, result) = url.httpPost().jsonBody(body.toString())
+            .header(headers)
+            .responseJson()
+
+        return when (result) {
+            is Result.Success -> {
+                result.value.content
+            }
+
+            is Result.Failure -> {
+                throw result.error.exception
+            }
+        }
     }
 
     private fun requestWithContext(

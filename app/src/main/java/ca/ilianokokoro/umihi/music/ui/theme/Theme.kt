@@ -27,6 +27,7 @@ import androidx.core.graphics.ColorUtils
 
 val LocalPixelPlayDarkTheme = staticCompositionLocalOf { false }
 val LocalMaterialTheme = staticCompositionLocalOf { DarkColorScheme }
+val LocalAlbumColorScheme = staticCompositionLocalOf<ColorSchemePair?> { null }
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this

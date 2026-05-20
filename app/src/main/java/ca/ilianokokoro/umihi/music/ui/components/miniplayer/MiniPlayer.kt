@@ -1,41 +1,33 @@
 package ca.ilianokokoro.umihi.music.ui.components.miniplayer
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
-import androidx.compose.material3.ButtonGroup
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularWavyProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.FilledIconToggleButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import ca.ilianokokoro.umihi.music.R
-import ca.ilianokokoro.umihi.music.core.helpers.ComposeHelper
+import androidx.compose.ui.unit.sp
 import ca.ilianokokoro.umihi.music.models.Song
-import ca.ilianokokoro.umihi.music.ui.components.SquareImage
+import ca.ilianokokoro.umihi.music.ui.components.SmartImage
+import ca.ilianokokoro.umihi.music.ui.theme.GoogleSansRounded
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MiniPlayer(
     modifier: Modifier = Modifier,
@@ -47,129 +39,182 @@ fun MiniPlayer(
     isPlaying: Boolean,
     isLoading: Boolean
 ) {
-    val controlsInteractionSources = List(3) { ComposeHelper.rememberInteractionSource() }
+    val hapticFeedback = LocalHapticFeedback.current
+    val previousInteraction = remember { MutableInteractionSource() }
+    val playPauseInteraction = remember { MutableInteractionSource() }
+    val nextInteraction = remember { MutableInteractionSource() }
+
+    // Dynamic Artwork Colors
+    val albumColorSchemePair = ca.ilianokokoro.umihi.music.ui.theme.LocalAlbumColorScheme.current
+    val isDark = ca.ilianokokoro.umihi.music.ui.theme.LocalPixelPlayDarkTheme.current
+    val activeScheme = albumColorSchemePair?.let { if (isDark) it.dark else it.light }
+
+    val containerColor = activeScheme?.primaryContainer?.copy(alpha = 0.95f) 
+        ?: MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.95f)
+    val onContainerColor = activeScheme?.onPrimaryContainer 
+        ?: MaterialTheme.colorScheme.onPrimaryContainer
+    val primaryColor = activeScheme?.primary 
+        ?: MaterialTheme.colorScheme.primary
+    val onPrimaryColor = activeScheme?.onPrimary 
+        ?: MaterialTheme.colorScheme.onPrimary
+
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .height(68.dp)
             .clickable { onClick() },
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+            containerColor = containerColor
         ),
-        elevation = CardDefaults.cardElevation(4.dp)
+        shape = RoundedCornerShape(36.dp), // Modern stadium shape
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .padding(horizontal = 14.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            SquareImage(currentSong.thumbnailPath ?: currentSong.thumbnailHref)
-
-            Column(
+            // Circle Album Art
+            Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 8.dp),
-                verticalArrangement = Arrangement.Center,
+                    .size(48.dp)
+                    .clip(CircleShape)
+            ) {
+                SmartImage(
+                    model = currentSong.thumbnailPath ?: currentSong.thumbnailHref,
+                    contentDescription = "Cover for ${currentSong.title}",
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(2.dp),
+                        strokeWidth = 2.dp,
+                        color = primaryColor
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Metadata Column
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = currentSong.title,
-                    style = MaterialTheme.typography.bodyLarge,
+                    text = if (isLoading) "Loading audio…" else currentSong.title,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontFamily = GoogleSansRounded,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp,
+                        letterSpacing = (-0.2).sp
+                    ),
+                    color = onContainerColor,
                     maxLines = 1,
-                    modifier = modifier.basicMarquee()
+                    modifier = Modifier.basicMarquee()
                 )
                 Text(
-                    text = currentSong.artist,
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = if (isLoading) "Preparing playback…" else currentSong.artist,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontFamily = GoogleSansRounded,
+                        fontSize = 13.sp,
+                        letterSpacing = 0.sp
+                    ),
+                    color = onContainerColor.copy(alpha = 0.7f),
                     maxLines = 1,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
-                    modifier = modifier.basicMarquee()
-
+                    modifier = Modifier.basicMarquee()
                 )
             }
 
-            ButtonGroup(
-                overflowIndicator = {},
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Controls Row (Previous, Play/Pause, Next)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                customItem(
-                    {
-                        FilledIconButton(
-                            onClick = onSkipPrevious,
-                            shapes = IconButtonDefaults.shapes(),
-                            interactionSource = controlsInteractionSources[0],
-                            modifier = Modifier
-                                .animateWidth(interactionSource = controlsInteractionSources[0])
+                // Previous Button
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(onPrimaryColor)
+                        .clickable(
+                            interactionSource = previousInteraction,
+                            indication = null,
+                            enabled = !isLoading
                         ) {
-                            Icon(
-                                imageVector = Icons.Rounded.SkipPrevious,
-                                contentDescription = stringResource(R.string.previous),
-                            )
-                        }
-                    },
-                    {}
-                )
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onSkipPrevious()
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.SkipPrevious,
+                        contentDescription = "Previous",
+                        tint = primaryColor,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
 
-                customItem(
-                    {
-                        FilledIconToggleButton(
-                            enabled = !isLoading,
-                            checked = isPlaying && !isLoading,
-                            onCheckedChange = {
-                                if (isLoading) {
-                                    // Do nothing
-                                } else {
-                                    onPlayPause()
-                                }
-                            },
-                            shapes = IconButtonDefaults.toggleableShapes()
-                                .copy(checkedShape = IconButtonDefaults.shapes().shape),
-                            interactionSource = controlsInteractionSources[1],
-                            modifier = modifier
-                                .animateWidth(interactionSource = controlsInteractionSources[1])
+                // Play / Pause Button
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(primaryColor)
+                        .clickable(
+                            interactionSource = playPauseInteraction,
+                            indication = null,
+                            enabled = !isLoading
                         ) {
-                            if (isLoading) {
-                                CircularWavyProgressIndicator(
-                                    modifier = Modifier.size(15.dp),
-                                )
-                            } else {
-                                val icon = if (isPlaying) {
-                                    Icons.Rounded.Pause
-                                } else {
-                                    Icons.Rounded.PlayArrow
-                                }
-                                Icon(
-                                    imageVector = icon,
-                                    contentDescription = icon.name,
-                                    modifier = modifier.size(20.dp)
-                                )
-                            }
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onPlayPause()
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    AnimatedContent(
+                        targetState = isPlaying && !isLoading,
+                        label = "playPause"
+                    ) { playing ->
+                        Icon(
+                            imageVector = if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                            contentDescription = if (playing) "Pause" else "Play",
+                            tint = onPrimaryColor,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
 
-
-                        }
-                    },
-                    {}
-                )
-
-                customItem(
-                    {
-                        FilledIconButton(
-                            onClick = onSkipNext,
-                            shapes = IconButtonDefaults.shapes(),
-                            interactionSource = controlsInteractionSources[2],
-                            modifier = Modifier
-                                .animateWidth(interactionSource = controlsInteractionSources[2])
+                // Next Button
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(onPrimaryColor)
+                        .clickable(
+                            interactionSource = nextInteraction,
+                            indication = null,
+                            enabled = !isLoading
                         ) {
-                            Icon(
-                                imageVector = Icons.Rounded.SkipNext,
-                                contentDescription = stringResource(R.string.next)
-                            )
-                        }
-                    },
-                    {}
-                )
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onSkipNext()
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.SkipNext,
+                        contentDescription = "Next",
+                        tint = primaryColor,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
             }
         }
     }
-
-
 }
+

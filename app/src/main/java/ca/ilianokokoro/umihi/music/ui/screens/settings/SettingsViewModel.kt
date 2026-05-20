@@ -152,6 +152,34 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         )
     }
 
+    fun updateUseImmersiveLyricsSetting(value: Boolean) {
+        updateSetting(
+            DatastoreRepository.PreferenceKeys.USE_IMMERSIVE_LYRICS,
+            value
+        )
+    }
+
+    fun updateLyricsAutoHideDelaySetting(value: Int) {
+        updateSetting(
+            DatastoreRepository.PreferenceKeys.LYRICS_AUTOHIDE_DELAY,
+            value
+        )
+    }
+
+    fun updateShowPlayerFileInfoSetting(value: Boolean) {
+        updateSetting(
+            DatastoreRepository.PreferenceKeys.SHOW_PLAYER_FILE_INFO,
+            value
+        )
+    }
+
+    fun updatePlayerThemePreferenceSetting(value: String) {
+        updateSetting(
+            DatastoreRepository.PreferenceKeys.PLAYER_THEME_PREFERENCE,
+            value
+        )
+    }
+
 
     fun checkForUpdates() {
         viewModelScope.launch {

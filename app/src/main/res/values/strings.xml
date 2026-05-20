@@ -104,4 +104,17 @@
     <string name="use_animated_lyrics_desc">Enable smooth animated canvas flows on active synced lyric lines</string>
     <string name="animated_lyrics_blur_title">Lyrics Blur Effect</string>
     <string name="animated_lyrics_blur_desc">Apply background blur behind active lyrics for premium visuals</string>
+    <string name="appearance">Appearance</string>
+    <string name="player_theme">Player Theme</string>
+    <string name="player_theme_desc">Choose the background color style for the now playing screen</string>
+    <string name="player_theme_album_art">Album Art (Full app)</string>
+    <string name="player_theme_dynamic">Dynamic (Full dynamic app)</string>
+    <string name="player_theme_static">System (Follow system theme)</string>
+    <string name="player_theme_playdynamic">PlayDynamic (Player &amp; miniplayer, lyrics follow dynamic theme)</string>
+    <string name="show_player_file_info">Show File Info</string>
+    <string name="show_player_file_info_desc">Display technical audio streaming file details in the player</string>
+    <string name="immersive_lyrics">Immersive Lyrics Mode</string>
+    <string name="immersive_lyrics_desc">Automatically hides player controls during active synced playback</string>
+    <string name="lyrics_autohide_delay">Auto-hide Delay</string>
+    <string name="lyrics_autohide_delay_desc">Time elapsed before lyrics controls auto-hide</string>
 </resources>

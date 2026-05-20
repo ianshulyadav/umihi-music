@@ -21,7 +21,27 @@ import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.outlined.StayCurrentPortrait
 import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material.icons.outlined.Update
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.rounded.Lyrics
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.runtime.Composable
@@ -54,6 +74,8 @@ fun SettingsScreen(
     settingsViewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory(application))
 ) {
     val uiState = settingsViewModel.uiState.collectAsStateWithLifecycle().value
+    var showPlayerThemeDialog by remember { mutableStateOf(false) }
+    var showAutoHideDelayDialog by remember { mutableStateOf(false) }
 
     // Refresh when returning to the screen
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -157,6 +179,32 @@ fun SettingsScreen(
                 }
 
                 SettingsSection(
+                    title = stringResource(R.string.appearance),
+                ) {
+                    val currentThemeLabel = when (uiState.screenState.settings.playerThemePreference) {
+                        "ALBUM_ART" -> stringResource(R.string.player_theme_album_art)
+                        "DYNAMIC" -> stringResource(R.string.player_theme_dynamic)
+                        "PLAYDYNAMIC" -> stringResource(R.string.player_theme_playdynamic)
+                        else -> stringResource(R.string.player_theme_static)
+                    }
+                    SettingsItem(
+                        title = stringResource(R.string.player_theme),
+                        subtitle = currentThemeLabel,
+                        leadingIcon = Icons.Outlined.Palette,
+                        shape = shapeFor(0, 2),
+                        onClick = { showPlayerThemeDialog = true }
+                    )
+                    BooleanSettingItem(
+                        title = stringResource(R.string.show_player_file_info),
+                        subtitle = stringResource(R.string.show_player_file_info_desc),
+                        leadingIcon = Icons.Outlined.Info,
+                        value = uiState.screenState.settings.showPlayerFileInfo,
+                        shape = shapeFor(1, 2),
+                        onToggle = { settingsViewModel.updateShowPlayerFileInfoSetting(it) }
+                    )
+                }
+
+                SettingsSection(
                     title = stringResource(R.string.lyrics_settings_title),
                 ) {
                     BooleanSettingItem(
@@ -164,7 +212,7 @@ fun SettingsScreen(
                         subtitle = stringResource(R.string.use_animated_lyrics_desc),
                         leadingIcon = androidx.compose.material.icons.Icons.Rounded.Lyrics,
                         value = uiState.screenState.settings.useAnimatedLyrics,
-                        shape = shapeFor(0, 2),
+                        shape = shapeFor(0, 4),
                         onToggle = { settingsViewModel.updateUseAnimatedLyricsSetting(it) }
                     )
                     BooleanSettingItem(
@@ -172,8 +220,23 @@ fun SettingsScreen(
                         subtitle = stringResource(R.string.animated_lyrics_blur_desc),
                         leadingIcon = androidx.compose.material.icons.Icons.Rounded.Lyrics,
                         value = uiState.screenState.settings.animatedLyricsBlurEnabled,
-                        shape = shapeFor(1, 2),
+                        shape = shapeFor(1, 4),
                         onToggle = { settingsViewModel.updateAnimatedLyricsBlurEnabledSetting(it) }
+                    )
+                    BooleanSettingItem(
+                        title = stringResource(R.string.immersive_lyrics),
+                        subtitle = stringResource(R.string.immersive_lyrics_desc),
+                        leadingIcon = androidx.compose.material.icons.Icons.Rounded.Lyrics,
+                        value = uiState.screenState.settings.useImmersiveLyrics,
+                        shape = shapeFor(2, 4),
+                        onToggle = { settingsViewModel.updateUseImmersiveLyricsSetting(it) }
+                    )
+                    SettingsItem(
+                        title = stringResource(R.string.lyrics_autohide_delay),
+                        subtitle = stringResource(R.string.lyrics_autohide_delay_desc) + ": " + uiState.screenState.settings.lyricsAutoHideDelay + "s",
+                        leadingIcon = Icons.Outlined.Timer,
+                        shape = shapeFor(3, 4),
+                        onClick = { showAutoHideDelayDialog = true }
                     )
                 }
 
@@ -240,7 +303,111 @@ fun SettingsScreen(
                         onDismiss = {
                             settingsViewModel.updateShowDownloadDeleteConfirm(false)
                         })
+                }
 
+                if (showPlayerThemeDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showPlayerThemeDialog = false },
+                        title = { Text(stringResource(R.string.player_theme)) },
+                        text = {
+                            val options = listOf(
+                                "PLAYDYNAMIC" to stringResource(R.string.player_theme_playdynamic),
+                                "DYNAMIC" to stringResource(R.string.player_theme_dynamic),
+                                "STATIC" to stringResource(R.string.player_theme_static),
+                                "ALBUM_ART" to stringResource(R.string.player_theme_album_art)
+                            )
+                            Column(Modifier.selectableGroup()) {
+                                options.forEach { option ->
+                                    val isSelected = option.first == state.settings.playerThemePreference
+                                    Row(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .height(56.dp)
+                                            .clip(shape = RoundedCornerShape(16.dp))
+                                            .selectable(
+                                                selected = isSelected,
+                                                onClick = {
+                                                    settingsViewModel.updatePlayerThemePreferenceSetting(option.first)
+                                                    showPlayerThemeDialog = false
+                                                },
+                                                role = Role.RadioButton
+                                            )
+                                            .padding(horizontal = 16.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        RadioButton(
+                                            selected = isSelected,
+                                            onClick = null
+                                        )
+                                        Text(
+                                            text = option.second,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            modifier = Modifier.padding(start = 16.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        confirmButton = {},
+                        dismissButton = {
+                            TextButton(
+                                onClick = { showPlayerThemeDialog = false },
+                                shapes = ButtonDefaults.shapes()
+                            ) {
+                                Text(stringResource(R.string.close))
+                            }
+                        }
+                    )
+                }
+
+                if (showAutoHideDelayDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showAutoHideDelayDialog = false },
+                        title = { Text(stringResource(R.string.lyrics_autohide_delay)) },
+                        text = {
+                            val options = listOf(2, 4, 6, 8, 10, 12)
+                            Column(Modifier.selectableGroup()) {
+                                options.forEach { option ->
+                                    val isSelected = option == state.settings.lyricsAutoHideDelay
+                                    Row(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .height(56.dp)
+                                            .clip(shape = RoundedCornerShape(16.dp))
+                                            .selectable(
+                                                selected = isSelected,
+                                                onClick = {
+                                                    settingsViewModel.updateLyricsAutoHideDelaySetting(option)
+                                                    showAutoHideDelayDialog = false
+                                                },
+                                                role = Role.RadioButton
+                                            )
+                                            .padding(horizontal = 16.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        RadioButton(
+                                            selected = isSelected,
+                                            onClick = null
+                                        )
+                                        Text(
+                                            text = "${option}s",
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            modifier = Modifier.padding(start = 16.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        confirmButton = {},
+                        dismissButton = {
+                            TextButton(
+                                onClick = { showAutoHideDelayDialog = false },
+                                shapes = ButtonDefaults.shapes()
+                            ) {
+                                Text(stringResource(R.string.close))
+                            }
+                        }
+                    )
                 }
             }
 

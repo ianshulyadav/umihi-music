@@ -26,40 +26,46 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
+import ca.ilianokokoro.umihi.music.data.database.AppDatabase
 
 class PlayerViewModel(application: Application) :
     AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(PlayerState())
     val uiState = _uiState.asStateFlow()
 
+    private val localPlaylistRepository = AppDatabase.getInstance(application).playlistRepository()
+    private val localSongRepository = AppDatabase.getInstance(application).songRepository()
+    private val datastoreRepository = ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository(application)
+
     private var lastUpdatedSongIndex: Int = -1
     private var lastLoadedLyricsSongId: String? = null
     private var lyricsFetchJob: kotlinx.coroutines.Job? = null
 
+    private val playerListener = object : Player.Listener {
+        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            updateCurrentSong()
+        }
+
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            updateIsPlayingState()
+        }
+
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            updateIsLoadingState()
+        }
+
+        override fun onTimelineChanged(timeline: Timeline, reason: Int) {
+            updateQueue()
+        }
+
+        override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
+            val artworkUri = mediaMetadata.artworkUri ?: return
+            updateThumbnail(artworkUri)
+        }
+    }
+
     init {
-        PlayerManager.currentController?.addListener(object : Player.Listener {
-            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                updateCurrentSong()
-            }
-
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                updateIsPlayingState()
-            }
-
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                updateIsLoadingState()
-            }
-
-            override fun onTimelineChanged(timeline: Timeline, reason: Int) {
-                updateQueue()
-            }
-
-            override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
-
-                val artworkUri = mediaMetadata.artworkUri ?: return
-                updateThumbnail(artworkUri)
-            }
-        })
+        PlayerManager.currentController?.addListener(playerListener)
 
         startProgressUpdate()
         updateCurrentSong()
@@ -76,6 +82,11 @@ class PlayerViewModel(application: Application) :
                 }
             }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        PlayerManager.currentController?.removeListener(playerListener)
     }
 
 
@@ -136,9 +147,59 @@ class PlayerViewModel(application: Application) :
         viewModelScope.launch {
             resetState()
             updateQueue()
-            currentSong?.let { loadLyricsForSong(it) }
+            currentSong?.let {
+                checkFavoriteStatus(it)
+                loadLyricsForSong(it)
+            }
         }
 
+    }
+
+    private fun checkFavoriteStatus(song: Song) {
+        viewModelScope.launch {
+            val isFav = localPlaylistRepository.isSongInPlaylist("liked_songs", song.youtubeId)
+            _uiState.update {
+                it.copy(isFavorite = isFav)
+            }
+        }
+    }
+
+    fun toggleFavorite() {
+        val song = currentSong ?: return
+        viewModelScope.launch {
+            val isCurrentlyFav = _uiState.value.isFavorite
+            if (isCurrentlyFav) {
+                localPlaylistRepository.deleteCrossRef("liked_songs", song.youtubeId)
+                _uiState.update { it.copy(isFavorite = false) }
+            } else {
+                val playlistInfo = ca.ilianokokoro.umihi.music.models.PlaylistInfo(
+                    id = "liked_songs",
+                    title = "Liked Songs"
+                )
+                localPlaylistRepository.insertPlaylist(playlistInfo)
+                localSongRepository.create(song)
+                localPlaylistRepository.insertCrossRef(
+                    ca.ilianokokoro.umihi.music.models.PlaylistSongCrossRef("liked_songs", song.youtubeId)
+                )
+                _uiState.update { it.copy(isFavorite = true) }
+            }
+
+            // Sync with YouTube if user is logged in
+            try {
+                val settings = datastoreRepository.getSettings()
+                if (settings.cookies.toRawCookie().isNotEmpty()) {
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        if (isCurrentlyFav) {
+                            ca.ilianokokoro.umihi.music.core.helpers.YoutubeRequestHelper.removeLike(song.youtubeId, settings)
+                        } else {
+                            ca.ilianokokoro.umihi.music.core.helpers.YoutubeRequestHelper.like(song.youtubeId, settings)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                ca.ilianokokoro.umihi.music.core.helpers.UmihiHelper.printe("Failed to sync favorite with YouTube: ${e.message}")
+            }
+        }
     }
 
     private fun updateQueue() {

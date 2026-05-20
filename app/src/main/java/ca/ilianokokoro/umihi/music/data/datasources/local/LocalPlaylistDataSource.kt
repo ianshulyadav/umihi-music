@@ -33,6 +33,15 @@ interface LocalPlaylistDataSource {
     @Transaction
     @Query("SELECT * FROM playlists WHERE id = :playlistId")
     fun observePlaylistById(playlistId: String): Flow<Playlist?>
+
+    @Query("SELECT EXISTS(SELECT 1 FROM PlaylistSongCrossRef WHERE playlistId = :playlistId AND songId = :songId)")
+    suspend fun isSongInPlaylist(playlistId: String, songId: String): Boolean
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCrossRef(ref: PlaylistSongCrossRef)
+
+    @Query("DELETE FROM PlaylistSongCrossRef WHERE playlistId = :playlistId AND songId = :songId")
+    suspend fun deleteCrossRef(playlistId: String, songId: String)
     
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPlaylist(playlistInfo: PlaylistInfo)

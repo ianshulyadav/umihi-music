@@ -64,4 +64,28 @@ object ComposeHelper {
         return repeatModeState.intValue
     }
 
+    @Composable
+    fun rememberShuffleMode(player: Player?): Boolean {
+        val shuffleModeState =
+            remember { androidx.compose.runtime.mutableStateOf(player?.shuffleModeEnabled ?: false) }
+
+        DisposableEffect(player) {
+            if (player == null) return@DisposableEffect onDispose {}
+
+            val listener = object : Player.Listener {
+                override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
+                    shuffleModeState.value = shuffleModeEnabled
+                }
+            }
+
+            player.addListener(listener)
+
+            onDispose {
+                player.removeListener(listener)
+            }
+        }
+
+        return shuffleModeState.value
+    }
+
 }

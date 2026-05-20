@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -43,21 +45,24 @@ fun BottomToggleRow(
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainer
 ) {
     val isFavorite = isFavoriteProvider()
-    val rowCorners = 60.dp
+    val rowCorners = 24.dp
+    val buttonCorners = 12.dp
 
     Box(
-        modifier = modifier.background(
-            color = containerColor,
-            shape = RoundedCornerShape(rowCorners)
-        )
+        modifier = modifier
+            .height(48.dp)
+            .background(
+                color = containerColor,
+                shape = RoundedCornerShape(rowCorners)
+            )
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp)
+                .fillMaxSize()
+                .padding(4.dp)
                 .clip(RoundedCornerShape(rowCorners))
                 .background(Color.Transparent),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             val commonModifier = Modifier.weight(1f)
@@ -66,9 +71,9 @@ fun BottomToggleRow(
                 modifier = commonModifier,
                 active = isShuffleEnabled,
                 activeColor = activeColorMain,
-                activeCornerRadius = rowCorners,
+                activeCornerRadius = buttonCorners,
                 activeContentColor = onActiveColorMain,
-                inactiveColor = inactiveColor,
+                inactiveColor = Color.Transparent,
                 inactiveContentColor = inactiveContentColor,
                 onClick = onShuffleToggle,
                 imageVector = Icons.Rounded.Shuffle,
@@ -84,9 +89,9 @@ fun BottomToggleRow(
                 modifier = commonModifier,
                 active = repeatActive,
                 activeColor = activeColorSecondary,
-                activeCornerRadius = rowCorners,
+                activeCornerRadius = buttonCorners,
                 activeContentColor = onActiveColorSecondary,
-                inactiveColor = inactiveColor,
+                inactiveColor = Color.Transparent,
                 inactiveContentColor = inactiveContentColor,
                 onClick = onRepeatToggle,
                 imageVector = repeatIcon,
@@ -96,9 +101,9 @@ fun BottomToggleRow(
                 modifier = commonModifier,
                 active = isFavorite,
                 activeColor = activeColorTertiary,
-                activeCornerRadius = rowCorners,
+                activeCornerRadius = buttonCorners,
                 activeContentColor = onActiveColorTertiary,
-                inactiveColor = inactiveColor,
+                inactiveColor = Color.Transparent,
                 inactiveContentColor = inactiveContentColor,
                 onClick = onFavoriteToggle,
                 imageVector = if (isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
