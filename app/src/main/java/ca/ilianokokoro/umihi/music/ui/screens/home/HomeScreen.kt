@@ -45,6 +45,18 @@ import ca.ilianokokoro.umihi.music.ui.components.ErrorMessage
 import ca.ilianokokoro.umihi.music.ui.components.LoadingAnimation
 import ca.ilianokokoro.umihi.music.ui.components.playlist.PlaylistCard
 
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
+import ca.ilianokokoro.umihi.music.ui.components.ExpressiveChip
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun HomeScreen(
@@ -85,6 +97,17 @@ fun HomeScreen(
         when (uiState.screenState) {
             is ScreenState.LoggedIn -> {
                 val playlists = uiState.screenState.playlistInfos
+                var selectedFilter by remember { mutableStateOf("All") }
+                val filters = listOf("All", "Playlists", "Downloaded", "Favorites")
+
+                val filteredPlaylists = remember(playlists, selectedFilter) {
+                    when (selectedFilter) {
+                        "Playlists" -> playlists.filter { it.id != Constants.Downloads.DOWNLOADED_PLAYLIST_ID && it.id != "liked_songs" }
+                        "Downloaded" -> playlists.filter { it.id == Constants.Downloads.DOWNLOADED_PLAYLIST_ID }
+                        "Favorites" -> playlists.filter { it.id == "liked_songs" }
+                        else -> playlists
+                    }
+                }
 
                 if (playlists.isEmpty()) {
                     Text(
@@ -92,66 +115,95 @@ fun HomeScreen(
                         textAlign = TextAlign.Center
                     )
                 } else {
-                    val pullState = rememberPullToRefreshState()
-                    PullToRefreshBox( // TODO : Make it work on empty list
-                        isRefreshing = uiState.isRefreshing,
-                        onRefresh = homeViewModel::refreshPlaylists,
-                        state = pullState,
-                        indicator = {
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.TopCenter)
-                                    .padding(top = 12.dp)
-                                    .graphicsLayer {
-                                        val scale = if (uiState.isRefreshing) 1f else pullState.distanceFraction.coerceIn(0f, 1f)
-                                        scaleX = scale
-                                        scaleY = scale
-                                        alpha = scale
-                                    }
-                                    .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
-                                    .padding(8.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (uiState.isRefreshing) {
-                                    CircularWavyProgressIndicator(
-                                        modifier = Modifier.size(24.dp),
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
-                                } else {
-                                    androidx.compose.material3.CircularProgressIndicator(
-                                        progress = { pullState.distanceFraction },
-                                        modifier = Modifier.size(24.dp),
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        strokeWidth = 3.dp
-                                    )
-                                }
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp)
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            filters.forEach { filter ->
+                                ExpressiveChip(
+                                    label = filter,
+                                    selected = selectedFilter == filter,
+                                    onClick = { selectedFilter = filter }
+                                )
                             }
                         }
-                    ) {
-                        LazyVerticalGrid(
-                            modifier = Modifier.fillMaxSize(),
-                            columns = GridCells.Adaptive(minSize = 150.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            contentPadding = PaddingValues(
-                                bottom = Constants.Ui.SCROLLABLE_BOTTOM_PADDING
-                            )
 
-                        ) {
-                            itemsIndexed(
-                                items = playlists,
-                                key = { index, playlist ->
-                                    ComposeHelper.getLazyKey(
-                                        playlist,
-                                        playlist.id,
-                                        index
-                                    )
-                                }
-                            ) { _, playlist ->
-                                PlaylistCard(
-                                    playlistInfo = playlist,
-                                    onClicked = { onPlaylistPressed(playlist) }
+                        if (filteredPlaylists.isEmpty()) {
+                            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                                Text(
+                                    "No playlists found",
+                                    textAlign = TextAlign.Center
                                 )
+                            }
+                        } else {
+                            val pullState = rememberPullToRefreshState()
+                            Box(modifier = Modifier.weight(1f)) {
+                                PullToRefreshBox(
+                                    isRefreshing = uiState.isRefreshing,
+                                    onRefresh = homeViewModel::refreshPlaylists,
+                                    state = pullState,
+                                    indicator = {
+                                        Box(
+                                            modifier = Modifier
+                                                .align(Alignment.TopCenter)
+                                                .padding(top = 12.dp)
+                                                .graphicsLayer {
+                                                    val scale = if (uiState.isRefreshing) 1f else pullState.distanceFraction.coerceIn(0f, 1f)
+                                                    scaleX = scale
+                                                    scaleY = scale
+                                                    alpha = scale
+                                                }
+                                                .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+                                                .padding(8.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            if (uiState.isRefreshing) {
+                                                CircularWavyProgressIndicator(
+                                                    modifier = Modifier.size(24.dp),
+                                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                                )
+                                            } else {
+                                                androidx.compose.material3.CircularProgressIndicator(
+                                                    progress = { pullState.distanceFraction },
+                                                    modifier = Modifier.size(24.dp),
+                                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                    strokeWidth = 3.dp
+                                                )
+                                            }
+                                        }
+                                    }
+                                ) {
+                                    LazyVerticalGrid(
+                                        modifier = Modifier.fillMaxSize(),
+                                        columns = GridCells.Adaptive(minSize = 150.dp),
+                                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        contentPadding = PaddingValues(
+                                            bottom = Constants.Ui.SCROLLABLE_BOTTOM_PADDING
+                                        )
+                                    ) {
+                                        itemsIndexed(
+                                            items = filteredPlaylists,
+                                            key = { index, playlist ->
+                                                ComposeHelper.getLazyKey(
+                                                    playlist,
+                                                    playlist.id,
+                                                    index
+                                                )
+                                            }
+                                        ) { _, playlist ->
+                                            PlaylistCard(
+                                                playlistInfo = playlist,
+                                                onClicked = { onPlaylistPressed(playlist) }
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

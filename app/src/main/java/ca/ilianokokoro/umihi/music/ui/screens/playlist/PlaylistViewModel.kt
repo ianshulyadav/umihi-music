@@ -224,6 +224,30 @@ class PlaylistViewModel(playlistInfo: PlaylistInfo, application: Application) :
                                 ApiResult.Loading -> ScreenState.Loading(_playlist)
                                 is ApiResult.Success -> {
                                     val remotePlaylist = apiResult.data
+                                    if (_playlist.id == "liked_songs") {
+                                        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                            try {
+                                                localPlaylistRepository.insertPlaylist(_playlist)
+                                                val remoteIds = remotePlaylist.songs.map { it.youtubeId }.toSet()
+                                                val currentSongs = localPlaylistRepository.getPlaylistById("liked_songs")?.songs ?: emptyList()
+
+                                                remotePlaylist.songs.forEach { song ->
+                                                    localSongRepository.create(song)
+                                                    localPlaylistRepository.insertCrossRef(
+                                                        ca.ilianokokoro.umihi.music.models.PlaylistSongCrossRef("liked_songs", song.youtubeId)
+                                                    )
+                                                }
+
+                                                currentSongs.forEach { localSong ->
+                                                    if (localSong.youtubeId !in remoteIds) {
+                                                        localPlaylistRepository.deleteCrossRef("liked_songs", localSong.youtubeId)
+                                                    }
+                                                }
+                                            } catch (e: Exception) {
+                                                ca.ilianokokoro.umihi.music.core.helpers.UmihiHelper.printe("Failed to sync liked songs in PlaylistViewModel: ${e.message}")
+                                            }
+                                        }
+                                    }
                                     ScreenState.Success(
                                         playlist = updatePlaylistFrom(
                                             remotePlaylist,

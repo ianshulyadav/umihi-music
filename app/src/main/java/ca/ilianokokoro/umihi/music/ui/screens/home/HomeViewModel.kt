@@ -64,8 +64,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 id = Constants.Downloads.DOWNLOADED_PLAYLIST_ID,
                 title = "Downloaded",
             )
+            val likedSongsPlaylist = PlaylistInfo(
+                id = "liked_songs",
+                title = "Liked Songs",
+            )
 
             if (!settings.cookies.isEmpty()) {
+                // Sync Liked Songs in background when opening/refreshing Home Screen
+                ca.ilianokokoro.umihi.music.core.helpers.LikedSongsSyncHelper.syncLikedSongsIfNeeded(
+                    getApplication(),
+                    viewModelScope
+                )
+
                 playlistRepository.retrieveAll(settings).collect { apiResult ->
                     val playlists = when (apiResult) {
                         is ApiResult.Success -> apiResult.data.toMutableList()
@@ -80,6 +90,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     }
 
                     playlists?.add(0, downloadedPlaylist)
+                    playlists?.add(1, likedSongsPlaylist)
                     _uiState.update {
                         _uiState.value.copy(
                             screenState = when (apiResult) {

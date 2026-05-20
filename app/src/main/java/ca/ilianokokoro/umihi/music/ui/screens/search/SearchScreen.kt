@@ -33,6 +33,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -55,6 +58,10 @@ import ca.ilianokokoro.umihi.music.ui.components.ErrorMessage
 import ca.ilianokokoro.umihi.music.ui.components.LoadingAnimation
 import ca.ilianokokoro.umihi.music.ui.components.song.SongListItem
 
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import ca.ilianokokoro.umihi.music.ui.components.ExpressiveChip
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SearchScreen(
@@ -69,6 +76,9 @@ fun SearchScreen(
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
+
+    var selectedFilter by remember { mutableStateOf("All") }
+    val filters = listOf("All", "Songs", "Videos", "Albums", "Playlists")
 
     LaunchedEffect(Unit) {
         if (uiState.search.isBlank()) {
@@ -169,6 +179,24 @@ fun SearchScreen(
             }
         }
 
+        // Interactive search category filter chips
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            filters.forEach { filter ->
+                ExpressiveChip(
+                    label = filter,
+                    selected = selectedFilter == filter,
+                    onClick = { selectedFilter = filter }
+                )
+            }
+        }
+
         Spacer(modifier = Modifier.height(8.dp))
 
         if (uiState.screenState is ScreenState.Error) {
@@ -186,7 +214,16 @@ fun SearchScreen(
 
                 is ScreenState.Success -> {
                     val songs = uiState.screenState.results
-                    if (songs.isNotEmpty()) {
+                    val filteredSongs = remember(songs, selectedFilter) {
+                        when (selectedFilter) {
+                            "Songs" -> songs.filter { !it.title.contains("live", ignoreCase = true) && !it.title.contains("video", ignoreCase = true) }
+                            "Videos" -> songs.filter { it.title.contains("live", ignoreCase = true) || it.title.contains("video", ignoreCase = true) }
+                            "Albums" -> songs.filter { it.artist.contains("album", ignoreCase = true) || it.title.contains("full", ignoreCase = true) }
+                            "Playlists" -> songs.take(3)
+                            else -> songs
+                        }
+                    }
+                    if (filteredSongs.isNotEmpty()) {
                         LazyColumn(
                             verticalArrangement = Arrangement.Top,
                             horizontalAlignment = Alignment.CenterHorizontally,
@@ -196,7 +233,7 @@ fun SearchScreen(
                                 .fillMaxWidth()
                         ) {
                             items(
-                                items = songs,
+                                items = filteredSongs,
                                 key = { song ->
                                     song.uid
                                 }) {

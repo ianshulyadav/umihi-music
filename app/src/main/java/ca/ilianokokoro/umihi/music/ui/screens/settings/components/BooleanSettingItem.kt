@@ -17,7 +17,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
+import ca.ilianokokoro.umihi.music.ui.components.ExpressiveSwitch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -101,7 +101,7 @@ fun BooleanSettingItem(
                 )
             }
 
-            Switch(
+            ExpressiveSwitch(
                 checked = value,
                 onCheckedChange = { onToggle(it) }
             )

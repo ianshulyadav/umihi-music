@@ -161,6 +161,20 @@ class PlayerViewModel(application: Application) :
             _uiState.update {
                 it.copy(isFavorite = isFav)
             }
+            
+            // Sync user's liked songs from YouTube in the background
+            ca.ilianokokoro.umihi.music.core.helpers.LikedSongsSyncHelper.syncLikedSongsIfNeeded(
+                getApplication(),
+                viewModelScope
+            )
+            
+            // Update state in case local sync modified it
+            val isFavPostSync = localPlaylistRepository.isSongInPlaylist("liked_songs", song.youtubeId)
+            if (isFavPostSync != isFav) {
+                _uiState.update {
+                    it.copy(isFavorite = isFavPostSync)
+                }
+            }
         }
     }
 
@@ -198,6 +212,22 @@ class PlayerViewModel(application: Application) :
                 }
             } catch (e: Exception) {
                 ca.ilianokokoro.umihi.music.core.helpers.UmihiHelper.printe("Failed to sync favorite with YouTube: ${e.message}")
+                // Rollback local database and UI state if sync failed
+                if (isCurrentlyFav) {
+                    val playlistInfo = ca.ilianokokoro.umihi.music.models.PlaylistInfo(
+                        id = "liked_songs",
+                        title = "Liked Songs"
+                    )
+                    localPlaylistRepository.insertPlaylist(playlistInfo)
+                    localSongRepository.create(song)
+                    localPlaylistRepository.insertCrossRef(
+                        ca.ilianokokoro.umihi.music.models.PlaylistSongCrossRef("liked_songs", song.youtubeId)
+                    )
+                    _uiState.update { it.copy(isFavorite = true) }
+                } else {
+                    localPlaylistRepository.deleteCrossRef("liked_songs", song.youtubeId)
+                    _uiState.update { it.copy(isFavorite = false) }
+                }
             }
         }
     }

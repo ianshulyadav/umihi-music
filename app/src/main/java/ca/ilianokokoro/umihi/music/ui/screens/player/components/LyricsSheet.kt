@@ -28,6 +28,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
+import ca.ilianokokoro.umihi.music.ui.components.ExpressiveSwitch
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -1061,7 +1062,7 @@ fun SettingsSwitchItem(
                 )
             }
         }
-        Switch(
+        ExpressiveSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange,
             enabled = enabled

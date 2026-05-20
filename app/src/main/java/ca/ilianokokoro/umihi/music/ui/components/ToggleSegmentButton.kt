@@ -21,6 +21,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -153,21 +155,45 @@ private fun ToggleSegmentButtonContainer(
     val targetBgColor = if (active) activeColor else inactiveColor
     val bgColor by animateColorAsState(
         targetValue = if (enabled) targetBgColor else targetBgColor.copy(alpha = 0.5f),
-        animationSpec = tween(durationMillis = 250),
-        label = ""
+        animationSpec = tween(durationMillis = 200),
+        label = "bgColor"
     )
     val cornerRadius by animateDpAsState(
-        targetValue = activeCornerRadius,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = ""
+        targetValue = if (active) activeCornerRadius else 24.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "cornerRadius"
+    )
+
+    val interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    
+    val scale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isPressed) 0.90f else (if (active) 1.05f else 1.0f),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "segmentScale"
     )
 
     Box(
         modifier = modifier
             .fillMaxSize()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .clip(RoundedCornerShape(cornerRadius))
             .background(bgColor)
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                enabled = enabled,
+                onClick = onClick
+            ),
         contentAlignment = Alignment.Center
     ) {
         Box(modifier = Modifier.graphicsLayer(alpha = if (enabled) 1f else 0.38f)) {
@@ -175,3 +201,4 @@ private fun ToggleSegmentButtonContainer(
         }
     }
 }
+

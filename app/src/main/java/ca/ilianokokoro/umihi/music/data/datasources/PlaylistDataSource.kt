@@ -18,10 +18,11 @@ class PlaylistDataSource {
     }
 
     fun retrieveOne(playlist: Playlist, settings: UmihiSettings): Playlist {
+        val remoteId = if (playlist.info.id == "liked_songs") "LM" else playlist.info.id
         return playlist.copy(
             songs = YoutubeHelper.extractSongList(
                 YoutubeRequestHelper.browse(
-                    playlist.info.id,
+                    remoteId,
                     settings
                 ), settings
             )
