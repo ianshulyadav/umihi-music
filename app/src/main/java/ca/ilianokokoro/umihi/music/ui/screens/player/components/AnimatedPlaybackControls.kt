@@ -40,7 +40,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import ca.ilianokokoro.umihi.music.ui.theme.LocalMaterialTheme
+import androidx.compose.material3.MaterialTheme
 import kotlinx.coroutines.delay
 
 private enum class PlaybackButtonType { NONE, PREVIOUS, PLAY_PAUSE, NEXT }
@@ -61,10 +61,10 @@ fun AnimatedPlaybackControls(
     releaseDelay: Long = 220L,
     playPauseCornerPlaying: Dp = 60.dp,
     playPauseCornerPaused: Dp = 26.dp,
-    colorOtherButtons: Color = LocalMaterialTheme.current.secondaryContainer,
-    colorPlayPause: Color = LocalMaterialTheme.current.primary,
-    tintPlayPauseIcon: Color = LocalMaterialTheme.current.onPrimary,
-    tintOtherIcons: Color = LocalMaterialTheme.current.onSecondaryContainer,
+    colorOtherButtons: Color = MaterialTheme.colorScheme.secondaryContainer,
+    colorPlayPause: Color = MaterialTheme.colorScheme.primary,
+    tintPlayPauseIcon: Color = MaterialTheme.colorScheme.onPrimary,
+    tintOtherIcons: Color = MaterialTheme.colorScheme.onSecondaryContainer,
     colorPreviousButton: Color = colorOtherButtons,
     colorNextButton: Color = colorOtherButtons,
     tintPreviousIcon: Color = tintOtherIcons,

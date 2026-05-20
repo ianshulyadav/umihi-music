@@ -15,5 +15,6 @@ data class UmihiSettings(
     val useImmersiveLyrics: Boolean = true,
     val lyricsAutoHideDelay: Int = 4,
     val showPlayerFileInfo: Boolean = false,
-    val playerThemePreference: String = "ALBUM_ART"
+    val playerThemePreference: String = "ALBUM_ART",
+    val colorPalettePreference: String = "SAGE"
 )

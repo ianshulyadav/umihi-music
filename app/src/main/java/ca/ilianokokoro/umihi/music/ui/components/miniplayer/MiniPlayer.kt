@@ -1,6 +1,11 @@
 package ca.ilianokokoro.umihi.music.ui.components.miniplayer
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
@@ -28,6 +33,7 @@ import ca.ilianokokoro.umihi.music.models.Song
 import ca.ilianokokoro.umihi.music.ui.components.SmartImage
 import ca.ilianokokoro.umihi.music.ui.theme.GoogleSansRounded
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun MiniPlayer(
     modifier: Modifier = Modifier,
@@ -37,7 +43,9 @@ fun MiniPlayer(
     onSkipNext: () -> Unit,
     onSkipPrevious: () -> Unit,
     isPlaying: Boolean,
-    isLoading: Boolean
+    isLoading: Boolean,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     val hapticFeedback = LocalHapticFeedback.current
     val previousInteraction = remember { MutableInteractionSource() }
@@ -58,17 +66,26 @@ fun MiniPlayer(
     val onPrimaryColor = activeScheme?.onPrimary 
         ?: MaterialTheme.colorScheme.onPrimary
 
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(68.dp)
-            .clickable { onClick() },
-        colors = CardDefaults.cardColors(
-            containerColor = containerColor
-        ),
-        shape = RoundedCornerShape(36.dp), // Modern stadium shape
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-    ) {
+    with(sharedTransitionScope) {
+        Card(
+            modifier = modifier
+                .sharedBounds(
+                    sharedContentState = rememberSharedContentState(key = "player_container"),
+                    animatedVisibilityScope = animatedVisibilityScope,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
+                    resizeMode = SharedTransitionScope.ResizeMode.ScaleToBounds()
+                )
+                .fillMaxWidth()
+                .height(68.dp)
+                .clip(RoundedCornerShape(36.dp))
+                .clickable { onClick() },
+            colors = CardDefaults.cardColors(
+                containerColor = containerColor
+            ),
+            shape = RoundedCornerShape(36.dp), // Modern stadium shape
+            elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+        ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
@@ -78,6 +95,10 @@ fun MiniPlayer(
             // Circle Album Art
             Box(
                 modifier = Modifier
+                    .sharedElement(
+                        state = rememberSharedContentState(key = "player_artwork"),
+                        animatedVisibilityScope = animatedVisibilityScope
+                    )
                     .size(48.dp)
                     .clip(CircleShape)
             ) {
@@ -115,7 +136,13 @@ fun MiniPlayer(
                     ),
                     color = onContainerColor,
                     maxLines = 1,
-                    modifier = Modifier.basicMarquee()
+                    modifier = Modifier
+                        .sharedBounds(
+                            sharedContentState = rememberSharedContentState(key = "player_title"),
+                            animatedVisibilityScope = animatedVisibilityScope,
+                            resizeMode = SharedTransitionScope.ResizeMode.ScaleToBounds()
+                        )
+                        .basicMarquee()
                 )
                 Text(
                     text = if (isLoading) "Preparing playback…" else currentSong.artist,
@@ -216,5 +243,6 @@ fun MiniPlayer(
             }
         }
     }
+}
 }
 

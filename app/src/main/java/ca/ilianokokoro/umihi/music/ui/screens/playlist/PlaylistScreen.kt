@@ -13,6 +13,15 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -102,11 +111,43 @@ fun PlaylistScreen(
                 }
 
             } else {
+                val pullState = rememberPullToRefreshState()
                 PullToRefreshBox(
                     isRefreshing = uiState.isRefreshing,
                     onRefresh = playlistViewModel::refreshPlaylistInfo,
                     modifier = modifier
-                        .fillMaxSize()
+                        .fillMaxSize(),
+                    state = pullState,
+                    indicator = { refreshing, state ->
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(top = 12.dp)
+                                .graphicsLayer {
+                                    val scale = if (refreshing) 1f else state.distanceFraction.coerceIn(0f, 1f)
+                                    scaleX = scale
+                                    scaleY = scale
+                                    alpha = scale
+                                }
+                                .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+                                .padding(8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (refreshing) {
+                                CircularWavyProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            } else {
+                                androidx.compose.material3.CircularProgressIndicator(
+                                    progress = { state.distanceFraction },
+                                    modifier = Modifier.size(24.dp),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    strokeWidth = 3.dp
+                                )
+                            }
+                        }
+                    }
                 ) {
                     LazyColumn(
                         modifier = modifier.fillMaxSize(),

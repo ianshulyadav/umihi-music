@@ -36,6 +36,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.rounded.Cast
 import androidx.compose.material.icons.rounded.Lyrics
+import androidx.compose.ui.graphics.graphicsLayer
 
 @Composable
 fun PlayerControls(
@@ -49,7 +50,13 @@ fun PlayerControls(
     onToggleLyrics: () -> Unit,
     isFavorite: Boolean,
     onFavoriteToggle: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    progressAlpha: Float = 1f,
+    progressOffsetY: Float = 0f,
+    controlsAlpha: Float = 1f,
+    controlsOffsetY: Float = 0f,
+    secondaryAlpha: Float = 1f,
+    secondaryOffsetY: Float = 0f
 ) {
     val player by PlayerManager.controllerState.collectAsState()
     val repeatMode = ComposeHelper.rememberRepeatMode(player)
@@ -62,7 +69,12 @@ fun PlayerControls(
     ) {
         // Lyrics Button above the progress seekbar on the very left
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .graphicsLayer {
+                    alpha = secondaryAlpha
+                    translationY = secondaryOffsetY
+                },
             horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -81,45 +93,55 @@ fun PlayerControls(
             }
         }
 
-        // Expressive Wavy Slider from PixelPlayer
-        WavySliderExpressive(
-            value = progress.position,
-            valueRange = 0f..progress.duration.coerceAtLeast(1f),
-            isPlaying = isPlaying && !isLoading,
-            onValueChange = { newValue ->
-                onUpdateSeekBarHeldState(true)
-                onSeek(newValue)
-            },
-            onValueChangeFinished = {
-                onSeekPlayer()
-                onUpdateSeekBarHeldState(false)
-            },
-            modifier = Modifier.padding(top = 10.dp)
-        )
-
-        // Time labels
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
+        // Progress bar container
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 4.dp)
+                .graphicsLayer {
+                    alpha = progressAlpha
+                    translationY = progressOffsetY
+                }
         ) {
-            Text(
-                text = progress.position.toTimeString(),
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontFamily = GoogleSansRounded,
-                    fontWeight = FontWeight.Bold
-                ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            // Expressive Wavy Slider from PixelPlayer
+            WavySliderExpressive(
+                value = progress.position,
+                valueRange = 0f..progress.duration.coerceAtLeast(1f),
+                isPlaying = isPlaying && !isLoading,
+                onValueChange = { newValue ->
+                    onUpdateSeekBarHeldState(true)
+                    onSeek(newValue)
+                },
+                onValueChangeFinished = {
+                    onSeekPlayer()
+                    onUpdateSeekBarHeldState(false)
+                },
+                modifier = Modifier.padding(top = 10.dp)
             )
-            Text(
-                text = progress.duration.toTimeString(),
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontFamily = GoogleSansRounded,
-                    fontWeight = FontWeight.Bold
-                ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+
+            // Time labels
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp)
+            ) {
+                Text(
+                    text = progress.position.toTimeString(),
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontFamily = GoogleSansRounded,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = progress.duration.toTimeString(),
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontFamily = GoogleSansRounded,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
 
         // Animated Playback Controls from PixelPlayer (Slightly smaller, 70.dp height)
@@ -141,12 +163,22 @@ fun PlayerControls(
                 dampingRatio = Spring.DampingRatioNoBouncy,
                 stiffness = Spring.StiffnessMediumLow
             ),
-            modifier = Modifier.padding(vertical = 10.dp)
+            modifier = Modifier
+                .padding(vertical = 10.dp)
+                .graphicsLayer {
+                    alpha = controlsAlpha
+                    translationY = controlsOffsetY
+                }
         )
 
         // Centered Shuffle/Repeat/Favorite Toggle Bar
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .graphicsLayer {
+                    alpha = secondaryAlpha
+                    translationY = secondaryOffsetY
+                },
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {

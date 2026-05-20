@@ -142,7 +142,8 @@ class MainActivity : ComponentActivity() {
             ) {
                 UmihiMusicTheme(
                     dynamicColor = dynamicColorEnabled,
-                    colorSchemePairOverride = finalColorSchemeOverride
+                    colorSchemePairOverride = finalColorSchemeOverride,
+                    colorPalette = settings.colorPalettePreference
                 ) {
                     NavigationRoot(
                         modifier = Modifier.fillMaxSize(),

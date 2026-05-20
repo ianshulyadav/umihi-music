@@ -52,8 +52,11 @@ import ca.ilianokokoro.umihi.music.ui.screens.settings.SettingsScreen
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.navigation3.ui.LocalNavAnimatedContentScope
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun NavigationRoot(modifier: Modifier = Modifier) {
     val backStack = rememberNavBackStack(HomeScreenKey)
@@ -70,7 +73,8 @@ fun NavigationRoot(modifier: Modifier = Modifier) {
         )
     )
 
-    Scaffold(
+    SharedTransitionLayout {
+        Scaffold(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
@@ -116,7 +120,8 @@ fun NavigationRoot(modifier: Modifier = Modifier) {
                 MiniPlayerWrapper(
                     showMiniPlayer = screenConfig.showMiniPlayer,
                     onMiniPlayerPressed = { backStack.add(PlayerScreenKey) },
-                    modifier = miniPlayerModifier
+                    modifier = miniPlayerModifier,
+                    sharedTransitionScope = this@SharedTransitionLayout
                 )
 
                 AnimatedVisibility(
@@ -267,6 +272,7 @@ fun NavigationRoot(modifier: Modifier = Modifier) {
                             key,
                             metadata = Constants.Animation.SLIDE_UP_TRANSITION
                         ) {
+                            val animatedVisibilityScope = LocalNavAnimatedContentScope.current
                             val albumScheme = ca.ilianokokoro.umihi.music.ui.theme.LocalAlbumColorScheme.current
                             if (settings.playerThemePreference == "PLAYDYNAMIC" && albumScheme != null) {
                                 ca.ilianokokoro.umihi.music.ui.theme.UmihiMusicTheme(
@@ -275,13 +281,17 @@ fun NavigationRoot(modifier: Modifier = Modifier) {
                                 ) {
                                     PlayerScreen(
                                         onBack = backStack::safePop,
-                                        application = app
+                                        application = app,
+                                        sharedTransitionScope = this@SharedTransitionLayout,
+                                        animatedVisibilityScope = animatedVisibilityScope
                                     )
                                 }
                             } else {
                                 PlayerScreen(
                                     onBack = backStack::safePop,
-                                    application = app
+                                    application = app,
+                                    sharedTransitionScope = this@SharedTransitionLayout,
+                                    animatedVisibilityScope = animatedVisibilityScope
                                 )
                             }
                         }

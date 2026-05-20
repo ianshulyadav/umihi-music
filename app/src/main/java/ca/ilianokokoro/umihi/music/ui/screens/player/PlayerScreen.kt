@@ -1,4 +1,8 @@
-@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@file:OptIn(
+    ExperimentalMaterial3Api::class,
+    ExperimentalMaterial3ExpressiveApi::class,
+    androidx.compose.animation.ExperimentalSharedTransitionApi::class
+)
 
 package ca.ilianokokoro.umihi.music.ui.screens.player
 
@@ -10,6 +14,17 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.blur
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.AnimatedVisibilityScope
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -20,6 +35,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
@@ -59,11 +76,87 @@ fun PlayerScreen(
     playerViewModel: PlayerViewModel = viewModel(
         factory =
             PlayerViewModel.Factory(application = application)
-    )
+    ),
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null
 ) {
     val uiState = playerViewModel.uiState.collectAsStateWithLifecycle().value
     val orientation = LocalConfiguration.current.orientation
     val currentSong = uiState.queue.getOrNull(uiState.currentIndex)
+
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val configuration = LocalConfiguration.current
+    val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
+    val dragThreshold = screenHeightPx * 0.25f
+    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+    val dragOffsetY = remember { Animatable(0f) }
+
+    // Gesture progress calculations
+    val dragProgress = (dragOffsetY.value / screenHeightPx).coerceIn(0f, 1f)
+    val containerScale = 1f - (dragProgress * 0.15f)
+    val containerCornerRadius = (dragProgress * 36f).dp
+    val containerAlpha = 1f - (dragProgress * 0.5f)
+
+    // Dynamic background colors (LocalAlbumColorScheme)
+    val albumColorSchemePair = ca.ilianokokoro.umihi.music.ui.theme.LocalAlbumColorScheme.current
+    val isDark = ca.ilianokokoro.umihi.music.ui.theme.LocalPixelPlayDarkTheme.current
+    val activeScheme = albumColorSchemePair?.let { if (isDark) it.dark else it.light }
+
+    // Linear pastel colors from scheme
+    val primaryContainer = activeScheme?.primaryContainer
+        ?: MaterialTheme.colorScheme.primaryContainer
+    val background = activeScheme?.background
+        ?: MaterialTheme.colorScheme.background
+    val surface = activeScheme?.surface
+        ?: MaterialTheme.colorScheme.surface
+
+    // Staggered reveal animations
+    val showContent = remember { androidx.compose.runtime.mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        showContent.value = true
+    }
+
+    val bgFadeProgress by animateFloatAsState(
+        targetValue = if (showContent.value) 1f else 0f,
+        animationSpec = tween(durationMillis = 400),
+        label = "bgFadeProgress"
+    )
+
+    val contentAlpha by animateFloatAsState(
+        targetValue = if (showContent.value) 1f else 0f,
+        animationSpec = tween(durationMillis = 350, delayMillis = 150),
+        label = "contentAlpha"
+    )
+    val contentOffsetY by animateFloatAsState(
+        targetValue = if (showContent.value) 0f else 40f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "contentOffsetY"
+    )
+
+    val progressAlpha by animateFloatAsState(
+        targetValue = if (showContent.value) 1f else 0f,
+        animationSpec = tween(durationMillis = 300, delayMillis = 250),
+        label = "progressAlpha"
+    )
+    val progressOffsetY by animateFloatAsState(
+        targetValue = if (showContent.value) 0f else 30f,
+        animationSpec = tween(durationMillis = 350, delayMillis = 200),
+        label = "progressOffsetY"
+    )
+
+    val controlsAlpha by animateFloatAsState(
+        targetValue = if (showContent.value) 1f else 0f,
+        animationSpec = tween(durationMillis = 300, delayMillis = 350),
+        label = "controlsAlpha"
+    )
+    val controlsOffsetY by animateFloatAsState(
+        targetValue = if (showContent.value) 0f else 30f,
+        animationSpec = tween(durationMillis = 350, delayMillis = 300),
+        label = "controlsOffsetY"
+    )
 
     // Close the screen in resumed with an empty queue
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -77,114 +170,161 @@ fun PlayerScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-
-    if (orientation == Configuration.ORIENTATION_PORTRAIT) {
-        Column(
-            modifier = modifier
-                .padding(8.dp)
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-                .pointerInput(Unit) {
-                    detectVerticalDragGestures(
-                        onDragEnd = {},
-                        onVerticalDrag = { change, dragAmount ->
-                            change.consume()
-                            if (dragAmount < -15) {
-                                playerViewModel.setQueueVisibility(true)
-                            } else if (dragAmount > 15) {
-                                playerViewModel.setQueueVisibility(false)
-                            }
-                        }
+    val containerModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+        with(sharedTransitionScope) {
+            Modifier.sharedBounds(
+                sharedContentState = rememberSharedContentState(key = "player_container"),
+                animatedVisibilityScope = animatedVisibilityScope,
+                enter = fadeIn(tween(350)),
+                exit = fadeOut(tween(350)),
+                boundsTransform = { _, _ ->
+                    spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
                     )
                 },
-            horizontalAlignment = Alignment.CenterHorizontally
+                resizeMode = SharedTransitionScope.ResizeMode.ScaleToBounds()
+            )
+        }
+    } else {
+        Modifier
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .then(containerModifier)
+            .graphicsLayer {
+                scaleX = containerScale
+                scaleY = containerScale
+                translationY = dragOffsetY.value
+                clip = true
+                shape = RoundedCornerShape(containerCornerRadius)
+            }
+            .pointerInput(uiState.isQueueModalShown, uiState.showLyrics) {
+                if (uiState.isQueueModalShown || uiState.showLyrics) return@pointerInput
+                
+                detectVerticalDragGestures(
+                    onDragEnd = {
+                        if (dragOffsetY.value > dragThreshold) {
+                            onBack()
+                        } else {
+                            coroutineScope.launch {
+                                dragOffsetY.animateTo(
+                                    0f,
+                                    spring(
+                                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                                        stiffness = Spring.StiffnessLow
+                                    )
+                                )
+                            }
+                        }
+                    },
+                    onDragCancel = {
+                        coroutineScope.launch {
+                            dragOffsetY.animateTo(0f)
+                        }
+                    },
+                    onVerticalDrag = { change, dragAmount ->
+                        if (dragAmount > 0f || dragOffsetY.value > 0f) {
+                            change.consume()
+                            coroutineScope.launch {
+                                dragOffsetY.snapTo((dragOffsetY.value + dragAmount).coerceAtLeast(0f))
+                            }
+                        } else if (dragAmount < -15f && dragOffsetY.value == 0f) {
+                            change.consume()
+                            playerViewModel.setQueueVisibility(true)
+                        }
+                    }
+                )
+            }
+    ) {
+        // Blurred Album Artwork Background with Pastel Gradient Tint
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer { alpha = containerAlpha * bgFadeProgress }
         ) {
-            TopPlayerHeader(
-                onBack = onBack,
-                onOpenQueue = { playerViewModel.setQueueVisibility(true) }
+            // Pastel Gradient
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        androidx.compose.ui.graphics.Brush.verticalGradient(
+                            colors = listOf(
+                                primaryContainer.copy(alpha = 0.35f),
+                                surface.copy(alpha = 0.95f),
+                                background
+                            )
+                        )
+                    )
             )
 
-            Thumbnail(
-                href = currentSong?.thumbnailHref.toString(),
-                isPlaying = uiState.isPlaying,
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .weight(1f)
-            )
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(horizontal = 8.dp),
-                horizontalAlignment = Alignment.Start,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                SongInfo(currentSong)
-                PlayerControls(
-                    isPlaying = uiState.isPlaying,
-                    isLoading = uiState.isLoading,
-                    progress = uiState.playbackProgress,
-                    onSeek = playerViewModel::seek,
-                    onSeekPlayer = playerViewModel::seekPlayer,
-                    onUpdateSeekBarHeldState = playerViewModel::updateSeekBarHeldState,
-                    onOpenQueue = {
-                        playerViewModel.setQueueVisibility(true)
-                    },
-                    onToggleLyrics = {
-                        playerViewModel.toggleLyricsVisibility(true)
-                    },
-                    isFavorite = uiState.isFavorite,
-                    onFavoriteToggle = playerViewModel::toggleFavorite
-                )
+            // Blur Art Background
+            if (currentSong != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer { alpha = 0.22f }
+                        .blur(50.dp, edgeTreatment = androidx.compose.ui.draw.BlurredEdgeTreatment.Unbounded)
+                ) {
+                    ca.ilianokokoro.umihi.music.ui.components.SmartImage(
+                        model = currentSong.thumbnailPath ?: currentSong.thumbnailHref,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                    )
+                }
             }
         }
 
-    } else if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            TopPlayerHeader(
-                onBack = onBack,
-                onOpenQueue = { playerViewModel.setQueueVisibility(true) }
-            )
-            Row(
+        if (orientation == Configuration.ORIENTATION_PORTRAIT) {
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .pointerInput(Unit) {
-                        detectVerticalDragGestures(
-                            onDragEnd = {},
-                            onVerticalDrag = { change, dragAmount ->
-                                change.consume()
-                                if (dragAmount < -15) {
-                                    playerViewModel.setQueueVisibility(true)
-                                } else if (dragAmount > 15) {
-                                    playerViewModel.setQueueVisibility(false)
-                                }
-                            }
-                        )
-                    },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceEvenly
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                TopPlayerHeader(
+                    onBack = onBack,
+                    onOpenQueue = { playerViewModel.setQueueVisibility(true) },
+                    modifier = Modifier.graphicsLayer {
+                        alpha = contentAlpha
+                        translationY = contentOffsetY
+                    }
+                )
+
                 Thumbnail(
                     href = currentSong?.thumbnailHref.toString(),
                     isPlaying = uiState.isPlaying,
                     modifier = Modifier
                         .fillMaxHeight()
-                        .weight(1f)
+                        .weight(1f),
+                    sharedTransitionScope = sharedTransitionScope,
+                    animatedVisibilityScope = animatedVisibilityScope
                 )
-
                 Column(
                     modifier = Modifier
-                        .fillMaxHeight()
+                        .fillMaxWidth()
                         .weight(1f)
-                        .padding(horizontal = 32.dp),
-                    verticalArrangement = Arrangement.SpaceEvenly
+                        .padding(horizontal = 8.dp),
+                    horizontalAlignment = Alignment.Start,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    SongInfo(currentSong)
+                    Box(
+                        modifier = Modifier.graphicsLayer {
+                            alpha = contentAlpha
+                            translationY = contentOffsetY
+                        }
+                    ) {
+                        SongInfo(
+                            song = currentSong,
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = animatedVisibilityScope
+                        )
+                    }
                     PlayerControls(
                         isPlaying = uiState.isPlaying,
                         isLoading = uiState.isLoading,
@@ -199,8 +339,91 @@ fun PlayerScreen(
                             playerViewModel.toggleLyricsVisibility(true)
                         },
                         isFavorite = uiState.isFavorite,
-                        onFavoriteToggle = playerViewModel::toggleFavorite
+                        onFavoriteToggle = playerViewModel::toggleFavorite,
+                        progressAlpha = progressAlpha,
+                        progressOffsetY = progressOffsetY,
+                        controlsAlpha = controlsAlpha,
+                        controlsOffsetY = controlsOffsetY,
+                        secondaryAlpha = controlsAlpha,
+                        secondaryOffsetY = controlsOffsetY
                     )
+                }
+            }
+
+        } else if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+            ) {
+                TopPlayerHeader(
+                    onBack = onBack,
+                    onOpenQueue = { playerViewModel.setQueueVisibility(true) },
+                    modifier = Modifier.graphicsLayer {
+                        alpha = contentAlpha
+                        translationY = contentOffsetY
+                    }
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    Thumbnail(
+                        href = currentSong?.thumbnailHref.toString(),
+                        isPlaying = uiState.isPlaying,
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .weight(1f),
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedVisibilityScope = animatedVisibilityScope
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .weight(1f)
+                            .padding(horizontal = 32.dp),
+                        verticalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        Box(
+                            modifier = Modifier.graphicsLayer {
+                                alpha = contentAlpha
+                                translationY = contentOffsetY
+                            }
+                        ) {
+                            SongInfo(
+                                song = currentSong,
+                                sharedTransitionScope = sharedTransitionScope,
+                                animatedVisibilityScope = animatedVisibilityScope
+                            )
+                        }
+                        PlayerControls(
+                            isPlaying = uiState.isPlaying,
+                            isLoading = uiState.isLoading,
+                            progress = uiState.playbackProgress,
+                            onSeek = playerViewModel::seek,
+                            onSeekPlayer = playerViewModel::seekPlayer,
+                            onUpdateSeekBarHeldState = playerViewModel::updateSeekBarHeldState,
+                            onOpenQueue = {
+                                playerViewModel.setQueueVisibility(true)
+                            },
+                            onToggleLyrics = {
+                                playerViewModel.toggleLyricsVisibility(true)
+                            },
+                            isFavorite = uiState.isFavorite,
+                            onFavoriteToggle = playerViewModel::toggleFavorite,
+                            progressAlpha = progressAlpha,
+                            progressOffsetY = progressOffsetY,
+                            controlsAlpha = controlsAlpha,
+                            controlsOffsetY = controlsOffsetY,
+                            secondaryAlpha = controlsAlpha,
+                            secondaryOffsetY = controlsOffsetY
+                        )
+                    }
                 }
             }
         }
@@ -230,7 +453,9 @@ fun PlayerScreen(
 fun Thumbnail(
     href: String,
     isPlaying: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null
 ) {
     BoxWithConstraints(
         modifier = modifier.padding(20.dp),
@@ -248,20 +473,41 @@ fun Thumbnail(
                         animationSpec = tween(Constants.Player.IMAGE_TRANSITION_DELAY)
                     )
                 )
-            }
+            },
+            label = "albumArtAnimatedContent"
         ) { targetState ->
-            val cornerRadius by androidx.compose.animation.core.animateDpAsState(
+            val cornerRadius by animateDpAsState(
                 targetValue = if (isPlaying) 32.dp else 16.dp,
-                animationSpec = androidx.compose.animation.core.spring(
-                    dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
-                    stiffness = androidx.compose.animation.core.Spring.StiffnessLow
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
                 ),
                 label = "albumCornerRadius"
             )
+
+            val artworkModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+                with(sharedTransitionScope) {
+                    Modifier.sharedElement(
+                        state = rememberSharedContentState(key = "player_artwork"),
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        boundsTransform = { _, _ ->
+                            spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
+                        }
+                    )
+                }
+            } else {
+                Modifier
+            }
+
             SquareImage(
                 uri = targetState,
                 cornerRadius = cornerRadius,
-                modifier = Modifier.size(size)
+                modifier = Modifier
+                    .size(size)
+                    .then(artworkModifier)
             )
         }
     }
@@ -269,18 +515,36 @@ fun Thumbnail(
 
 
 @Composable
-fun SongInfo(song: Song?) {
+fun SongInfo(
+    song: Song?,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null
+) {
     Column(
         verticalArrangement = Arrangement.spacedBy(4.dp),
         horizontalAlignment = Alignment.Start
     ) {
+        val titleModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+            with(sharedTransitionScope) {
+                Modifier.sharedBounds(
+                    sharedContentState = rememberSharedContentState(key = "player_title"),
+                    animatedVisibilityScope = animatedVisibilityScope,
+                    resizeMode = SharedTransitionScope.ResizeMode.ScaleToBounds()
+                )
+            }
+        } else {
+            Modifier
+        }
+
         Text(
             text = song?.title ?: "",
             style = MaterialTheme.typography.titleLarge.copy(
                 fontFamily = ca.ilianokokoro.umihi.music.ui.theme.GoogleSansRounded,
                 fontWeight = FontWeight.Bold
             ),
-            modifier = Modifier.basicMarquee()
+            modifier = Modifier
+                .then(titleModifier)
+                .basicMarquee()
         )
         Text(
             text = song?.artist ?: "",

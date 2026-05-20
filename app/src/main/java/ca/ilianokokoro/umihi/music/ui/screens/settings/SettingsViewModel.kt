@@ -180,6 +180,13 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         )
     }
 
+    fun updateColorPalettePreferenceSetting(value: String) {
+        updateSetting(
+            DatastoreRepository.PreferenceKeys.COLOR_PALETTE_PREFERENCE,
+            value
+        )
+    }
+
 
     fun checkForUpdates() {
         viewModelScope.launch {

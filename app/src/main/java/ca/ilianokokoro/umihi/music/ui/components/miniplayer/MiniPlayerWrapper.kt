@@ -24,13 +24,16 @@ import androidx.media3.common.Player
 import ca.ilianokokoro.umihi.music.core.Constants
 import ca.ilianokokoro.umihi.music.core.managers.PlayerManager
 import ca.ilianokokoro.umihi.music.extensions.toSong
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 
-
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun MiniPlayerWrapper(
     modifier: Modifier = Modifier,
     onMiniPlayerPressed: () -> Unit,
-    showMiniPlayer: Boolean
+    showMiniPlayer: Boolean,
+    sharedTransitionScope: SharedTransitionScope
 ) {
     val player by PlayerManager.controllerState.collectAsState()
     var currentSong by remember { mutableStateOf(player?.currentMediaItem?.toSong()) }
@@ -87,6 +90,7 @@ fun MiniPlayerWrapper(
             .padding(horizontal = 8.dp, vertical = 4.dp)
             .height(Constants.Ui.MiniPlayer.HEIGHT)
     ) {
+        val animatedVisibilityScope = this
         MiniPlayer(
             currentSong = currentSong!!,
             onClick = onMiniPlayerPressed,
@@ -105,7 +109,9 @@ fun MiniPlayerWrapper(
                 player?.seekToPrevious()
             },
             isPlaying = songIsPlaying == true,
-            isLoading = songIsLoading
+            isLoading = songIsLoading,
+            sharedTransitionScope = sharedTransitionScope,
+            animatedVisibilityScope = animatedVisibilityScope
         )
     }
 }

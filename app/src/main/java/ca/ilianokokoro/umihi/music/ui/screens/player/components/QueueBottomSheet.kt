@@ -348,31 +348,11 @@ fun QueueBottomSheet(
             val isShuffleEnabled = ComposeHelper.rememberShuffleMode(player)
             val sleepTimerRemaining by playerViewModel.sleepTimerRemaining.collectAsStateWithLifecycle()
 
-            // Scrim overlay for expanded FAB options
+            // Unified Scrim and Floating Options Menu Overlay
             androidx.compose.animation.AnimatedVisibility(
                 visible = isFabExpanded,
-                enter = androidx.compose.animation.fadeIn(),
-                exit = androidx.compose.animation.fadeOut(),
-                modifier = Modifier.zIndex(20f)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.55f))
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) {
-                            isFabExpanded = false
-                        }
-                )
-            }
-
-            // Expanded Floating Options Menu
-            androidx.compose.animation.AnimatedVisibility(
-                visible = isFabExpanded,
-                enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.slideInVertically(initialOffsetY = { it / 3 }),
-                exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.slideOutVertically(targetOffsetY = { it / 3 }),
+                enter = androidx.compose.animation.fadeIn(animationSpec = tween(250)),
+                exit = androidx.compose.animation.fadeOut(animationSpec = tween(250)),
                 modifier = Modifier
                     .fillMaxSize()
                     .zIndex(30f)
@@ -380,14 +360,7 @@ fun QueueBottomSheet(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(
-                            brush = Brush.verticalGradient(
-                                listOf(
-                                    Color.Transparent,
-                                    MaterialTheme.colorScheme.surfaceContainerLowest
-                                )
-                            )
-                        )
+                        .background(Color.Black.copy(alpha = 0.45f))
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
@@ -399,9 +372,13 @@ fun QueueBottomSheet(
                     Column(
                         modifier = Modifier
                             .wrapContentWidth(Alignment.CenterHorizontally)
-                            .padding(bottom = 110.dp), // Height of controls row + padding
+                            .padding(bottom = 110.dp)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { /* Block clicks to scrim */ },
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         QueueToolbarMenuButton(
                             text = "Clear Queue",
@@ -537,54 +514,14 @@ fun QueuePlaylistSongItem(
     val colors = MaterialTheme.colorScheme
     var expanded by remember { mutableStateOf(false) }
 
-    // Dynamic Artwork Colors for the Now Playing item gradient
-    val context = LocalContext.current
-    var songColorScheme by remember(song.uid) { mutableStateOf<ca.ilianokokoro.umihi.music.ui.theme.ColorSchemePair?>(null) }
-    LaunchedEffect(song.uid, song.thumbnailPath, song.thumbnailHref) {
-        if (isCurrentSong) {
-            val thumbnailUri = song.thumbnailPath ?: song.thumbnailHref
-            if (!thumbnailUri.isNullOrBlank()) {
-                try {
-                    val processor = ca.ilianokokoro.umihi.music.ui.theme.ColorSchemeProcessor.getInstance(context)
-                    val scheme = processor.getOrGenerateColorScheme(thumbnailUri)
-                    songColorScheme = scheme
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
-        }
-    }
-
-    val isDark = ca.ilianokokoro.umihi.music.ui.theme.LocalPixelPlayDarkTheme.current
-    val activeSongScheme = songColorScheme?.let { if (isDark) it.dark else it.light }
-
-    val gradientBrush = if (isCurrentSong && activeSongScheme != null) {
-        Brush.linearGradient(
-            colors = listOf(
-                activeSongScheme.primaryContainer.copy(alpha = 0.95f),
-                activeSongScheme.secondaryContainer.copy(alpha = 0.85f),
-                activeSongScheme.tertiaryContainer.copy(alpha = 0.75f)
-            )
-        )
-    } else if (isCurrentSong) {
-        Brush.linearGradient(
-            colors = listOf(
-                colors.primaryContainer,
-                colors.secondaryContainer
-            )
-        )
-    } else {
-        null
-    }
-
     val cornerRadius by animateDpAsState(
-        targetValue = if (isCurrentSong) 60.dp else 22.dp,
+        targetValue = if (isCurrentSong) 50.dp else 22.dp,
         label = "cornerRadius"
     )
     val itemShape = RoundedCornerShape(cornerRadius)
 
     val albumCornerRadius by animateDpAsState(
-        targetValue = if (isCurrentSong) 60.dp else 8.dp,
+        targetValue = if (isCurrentSong) 50.dp else 10.dp,
         label = "albumCornerRadius"
     )
     val albumShape = RoundedCornerShape(albumCornerRadius)
@@ -594,7 +531,7 @@ fun QueuePlaylistSongItem(
         label = "elevation"
     )
 
-    val backgroundColor = colors.surfaceContainerLowest
+    val backgroundColor = if (isCurrentSong) colors.primaryContainer else colors.surfaceContainerLow
     val hapticView = LocalView.current
     val dismissScope = rememberCoroutineScope()
     val dismissEnabled = !isCurrentSong && !isDragging
@@ -692,13 +629,11 @@ fun QueuePlaylistSongItem(
                     onClick = onPress
                 ),
             shape = itemShape,
-            color = if (gradientBrush != null) Color.Transparent else backgroundColor,
+            color = backgroundColor,
             tonalElevation = elevation,
             shadowElevation = elevation
         ) {
-            val contentModifier = if (gradientBrush != null) {
-                Modifier.background(gradientBrush)
-            } else Modifier
+            val contentModifier = Modifier
 
             Row(
                 modifier = contentModifier.padding(horizontal = 4.dp, vertical = 12.dp),
@@ -752,7 +687,7 @@ fun QueuePlaylistSongItem(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             color = if (isCurrentSong) {
-                                activeSongScheme?.onPrimaryContainer ?: colors.onPrimaryContainer
+                                colors.onPrimaryContainer
                             } else {
                                 colors.onSurface
                             },
@@ -765,7 +700,7 @@ fun QueuePlaylistSongItem(
                             overflow = TextOverflow.Ellipsis,
                             style = MaterialTheme.typography.bodyMedium,
                             color = if (isCurrentSong) {
-                                (activeSongScheme?.onPrimaryContainer ?: colors.onPrimaryContainer).copy(alpha = 0.8f)
+                                colors.onPrimaryContainer.copy(alpha = 0.7f)
                             } else {
                                 colors.onSurfaceVariant
                             }
@@ -777,7 +712,7 @@ fun QueuePlaylistSongItem(
                             modifier = Modifier
                                 .padding(start = 8.dp, end = 12.dp)
                                 .size(width = 18.dp, height = 16.dp),
-                            color = activeSongScheme?.onPrimaryContainer ?: colors.onPrimaryContainer,
+                            color = colors.onPrimaryContainer,
                             isPlaying = PlayerManager.currentController?.isPlaying == true
                         )
                     } else {
@@ -898,36 +833,37 @@ private fun QueueToolbarMenuButton(
     val haptic = LocalHapticFeedback.current
 
     Surface(
+        onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onClick()
+        },
         modifier = modifier
             .widthIn(min = 184.dp, max = 260.dp)
-            .heightIn(min = 48.dp)
-            .wrapContentWidth()
-            .clickable(
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() }
-            ) {
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onClick()
-            },
-        shape = RoundedCornerShape(18.dp),
+            .heightIn(min = 48.dp),
+        shape = RoundedCornerShape(24.dp),
         color = containerColor,
-        tonalElevation = 8.dp,
-        shadowElevation = 8.dp
+        contentColor = contentColor,
+        tonalElevation = 6.dp,
+        shadowElevation = 6.dp
     ) {
         Row(
             modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            horizontalArrangement = Arrangement.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = text,
                 tint = contentColor
             )
+            Spacer(modifier = Modifier.width(10.dp))
             Text(
                 text = text,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontFamily = GoogleSansRounded,
+                    fontWeight = FontWeight.SemiBold
+                ),
                 color = contentColor
             )
         }

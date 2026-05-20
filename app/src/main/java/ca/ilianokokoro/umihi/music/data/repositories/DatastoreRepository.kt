@@ -22,6 +22,7 @@ import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.Prefere
 import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.LYRICS_AUTOHIDE_DELAY
 import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.SHOW_PLAYER_FILE_INFO
 import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.PLAYER_THEME_PREFERENCE
+import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.COLOR_PALETTE_PREFERENCE
 import ca.ilianokokoro.umihi.music.models.Cookies
 import ca.ilianokokoro.umihi.music.models.UmihiSettings
 import kotlinx.coroutines.flow.first
@@ -46,6 +47,7 @@ class DatastoreRepository(private val context: Context) {
         val LYRICS_AUTOHIDE_DELAY = intPreferencesKey("lyrics_autohide_delay")
         val SHOW_PLAYER_FILE_INFO = booleanPreferencesKey("show_player_file_info")
         val PLAYER_THEME_PREFERENCE = stringPreferencesKey("player_theme_preference")
+        val COLOR_PALETTE_PREFERENCE = stringPreferencesKey("color_palette_preference")
     }
 
     suspend fun <T> save(key: Preferences.Key<T>, value: T) {
@@ -67,6 +69,7 @@ class DatastoreRepository(private val context: Context) {
         val lyricsAutoHideDelay = it[LYRICS_AUTOHIDE_DELAY] ?: 4
         val showPlayerFileInfo = it[SHOW_PLAYER_FILE_INFO] ?: false
         val playerThemePreference = it[PLAYER_THEME_PREFERENCE] ?: "ALBUM_ART"
+        val colorPalettePreference = it[COLOR_PALETTE_PREFERENCE] ?: "SAGE"
         val cookies = cookies.first()
         val dataSyncId = dataSyncId.first()
 
@@ -83,7 +86,8 @@ class DatastoreRepository(private val context: Context) {
             useImmersiveLyrics = useImmersiveLyrics,
             lyricsAutoHideDelay = lyricsAutoHideDelay,
             showPlayerFileInfo = showPlayerFileInfo,
-            playerThemePreference = playerThemePreference
+            playerThemePreference = playerThemePreference,
+            colorPalettePreference = colorPalettePreference
         )
     }
 

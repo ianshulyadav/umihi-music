@@ -192,399 +192,416 @@ fun LyricsSheet(
                 )
         )
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
+        // --- LYRICS CONTENT (occupies full screen, lyrics scroll underneath header/footer) ---
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
         ) {
-            // Premium Technical Header
-            AnimatedVisibility(
-                visible = !isImmersiveActive,
-                enter = fadeIn() + slideInVertically { -it },
-                exit = fadeOut() + slideOutVertically { -it }
+            when {
+                uiState.isLoadingLyrics -> {
+                    CircularProgressIndicator(
+                        color = accentColor,
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
+                uiState.lyrics == null -> {
+                    Text(
+                        text = "No lyrics found for this song.",
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontFamily = GoogleSansRounded,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = onBackgroundColor.copy(alpha = 0.6f),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(32.dp)
+                    )
+                }
+                else -> {
+                    val lyrics = uiState.lyrics!!
+                    val playbackProgress = uiState.playbackProgress.position
+
+                    if (showSyncedLyrics && !lyrics.synced.isNullOrEmpty()) {
+                        val activeLineIndex by remember(lyrics, playbackProgress, localOffsetMillis) {
+                            derivedStateOf {
+                                val index = lyrics.synced.indexOfLast { (playbackProgress + localOffsetMillis) >= it.time }
+                                if (index != -1) index else 0
+                            }
+                        }
+
+                        val lazyListState = rememberLazyListState()
+
+                        LaunchedEffect(activeLineIndex) {
+                            val target = (activeLineIndex - 2).coerceAtLeast(0)
+                            lazyListState.animateScrollToItem(target)
+                        }
+
+                        LaunchedEffect(lazyListState.isScrollInProgress) {
+                            if (lazyListState.isScrollInProgress) {
+                                resetInteraction()
+                            }
+                        }
+
+                        val positionFlow = remember {
+                            snapshotFlow { (uiState.playbackProgress.position + localOffsetMillis).toLong() }
+                        }
+
+                        LazyColumn(
+                            state = lazyListState,
+                            contentPadding = PaddingValues(
+                                start = 24.dp,
+                                end = 24.dp,
+                                top = 110.dp,
+                                bottom = 220.dp
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(24.dp),
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            itemsIndexed(lyrics.synced) { index, line ->
+                                val isActive = index == activeLineIndex
+                                val scale by androidx.compose.animation.core.animateFloatAsState(
+                                    targetValue = if (isActive) 1.08f else 0.92f,
+                                    animationSpec = androidx.compose.animation.core.spring(
+                                        dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy,
+                                        stiffness = androidx.compose.animation.core.Spring.StiffnessLow
+                                    ),
+                                    label = "scale"
+                                )
+                                val animatedAlpha by androidx.compose.animation.core.animateFloatAsState(
+                                    targetValue = if (isActive) 1.0f else 0.45f,
+                                    animationSpec = androidx.compose.animation.core.tween(300),
+                                    label = "alpha"
+                                )
+                                val animatedColor by androidx.compose.animation.animateColorAsState(
+                                    targetValue = if (isActive) accentColor else onBackgroundColor,
+                                    animationSpec = androidx.compose.animation.core.tween(300),
+                                    label = "color"
+                                )
+
+                                val fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Medium
+
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            resetInteraction()
+                                            PlayerManager.currentController?.seekTo((line.time - localOffsetMillis).toLong())
+                                        }
+                                        .padding(vertical = 4.dp),
+                                    horizontalAlignment = Alignment.Start
+                                ) {
+                                    Text(
+                                        text = line.line,
+                                        style = androidx.compose.ui.text.TextStyle(
+                                            fontFamily = GoogleSansRounded,
+                                            fontWeight = fontWeight,
+                                            fontSize = 22.sp,
+                                            lineHeight = 22.sp * 1.4f,
+                                            textAlign = TextAlign.Start
+                                        ),
+                                        color = animatedColor,
+                                        modifier = Modifier
+                                            .graphicsLayer {
+                                                scaleX = scale
+                                                scaleY = scale
+                                                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
+                                                this.alpha = animatedAlpha
+                                            }
+                                    )
+
+                                    if (!line.romanization.isNullOrEmpty()) {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = line.romanization,
+                                            style = androidx.compose.ui.text.TextStyle(
+                                                fontFamily = GoogleSansRounded,
+                                                fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                                                fontSize = 16.sp,
+                                                lineHeight = 16.sp * 1.3f,
+                                                textAlign = TextAlign.Start
+                                            ),
+                                            color = if (isActive) MaterialTheme.colorScheme.secondary else onBackgroundColor,
+                                            modifier = Modifier.graphicsLayer {
+                                                this.alpha = animatedAlpha * 0.8f
+                                            }
+                                        )
+                                    }
+
+                                    if (!line.translation.isNullOrEmpty()) {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = line.translation,
+                                            style = androidx.compose.ui.text.TextStyle(
+                                                fontFamily = GoogleSansRounded,
+                                                fontWeight = if (isActive) FontWeight.Medium else FontWeight.Normal,
+                                                fontSize = 16.sp,
+                                                lineHeight = 16.sp * 1.3f,
+                                                textAlign = TextAlign.Start
+                                            ),
+                                            color = onBackgroundColor,
+                                            modifier = Modifier.graphicsLayer {
+                                                this.alpha = animatedAlpha * 0.7f
+                                            }
+                                        )
+                                    }
+
+                                    if (isActive && uiState.useAnimatedLyrics) {
+                                        val nextTime = lyrics.synced.getOrNull(index + 1)?.time ?: Int.MAX_VALUE
+                                        ca.ilianokokoro.umihi.music.ui.screens.player.lyrics.BubblesLine(
+                                            positionFlow = positionFlow,
+                                            time = line.time,
+                                            color = accentColor,
+                                            nextTime = nextTime,
+                                            modifier = Modifier
+                                                .padding(top = 8.dp)
+                                                .then(
+                                                    if (uiState.animatedLyricsBlurEnabled) {
+                                                        Modifier.blur(2.dp)
+                                                    } else {
+                                                        Modifier
+                                                    }
+                                                )
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        val plainLines = lyrics.plain ?: emptyList()
+                        val staticListState = rememberLazyListState()
+
+                        LaunchedEffect(staticListState.isScrollInProgress) {
+                            if (staticListState.isScrollInProgress) {
+                                resetInteraction()
+                            }
+                        }
+
+                        LazyColumn(
+                            state = staticListState,
+                            contentPadding = PaddingValues(
+                                start = 24.dp,
+                                end = 24.dp,
+                                top = 110.dp,
+                                bottom = 220.dp
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(20.dp),
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            itemsIndexed(plainLines) { _, line ->
+                                Text(
+                                    text = line,
+                                    style = androidx.compose.ui.text.TextStyle(
+                                        fontFamily = GoogleSansRounded,
+                                        fontWeight = FontWeight.Medium,
+                                        fontSize = 20.sp,
+                                        lineHeight = 28.sp,
+                                        textAlign = TextAlign.Start
+                                    ),
+                                    color = onBackgroundColor.copy(alpha = 0.8f),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- FLOATING TOP HEADER ---
+        AnimatedVisibility(
+            visible = !isImmersiveActive,
+            enter = fadeIn() + slideInVertically { -it },
+            exit = fadeOut() + slideOutVertically { -it },
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .statusBarsPadding()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
+                IconButton(
+                    onClick = onClose,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .size(40.dp)
+                        .background(onBackgroundColor.copy(alpha = 0.1f), CircleShape)
                 ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Close,
+                        contentDescription = "Close Lyrics",
+                        tint = onBackgroundColor
+                    )
+                }
+
+                // Rounded Rectangular Capsule miniplayer on header in lyrics page
+                // Clip and background are fully stadium-styled like a capsule pill shape!
+                LyricsTrackInfo(
+                    song = currentSong,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 8.dp)
+                        .clip(CircleShape)
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = 0.95f),
+                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
+                                )
+                            )
+                        )
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    isPlaying = uiState.isPlaying
+                )
+
+                Box {
                     IconButton(
-                        onClick = onClose,
+                        onClick = { showMoreMenu = true },
                         modifier = Modifier
                             .size(40.dp)
                             .background(onBackgroundColor.copy(alpha = 0.1f), CircleShape)
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.Close,
-                            contentDescription = "Close Lyrics",
+                            imageVector = Icons.Filled.MoreVert,
+                            contentDescription = "More Settings",
                             tint = onBackgroundColor
                         )
                     }
 
-                    // Rounded Rectangular Capsule miniplayer on header in lyrics page
-                    LyricsTrackInfo(
-                        song = currentSong,
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 8.dp)
-                            .background(
-                                brush = Brush.horizontalGradient(
-                                    colors = listOf(
-                                        Color.White.copy(alpha = 0.95f),
-                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
-                                    )
-                                ),
-                                shape = RoundedCornerShape(24.dp)
-                            )
-                            .padding(horizontal = 6.dp, vertical = 4.dp),
-                        isPlaying = uiState.isPlaying
-                    )
-
-                    Box {
-                        IconButton(
-                            onClick = { showMoreMenu = true },
-                            modifier = Modifier
-                                .size(40.dp)
-                                .background(onBackgroundColor.copy(alpha = 0.1f), CircleShape)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.MoreVert,
-                                contentDescription = "More Settings",
-                                tint = onBackgroundColor
-                            )
-                        }
-
-                        DropdownMenu(
-                            expanded = showMoreMenu,
-                            onDismissRequest = { showMoreMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Show Technical File Info", fontFamily = GoogleSansRounded) },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Info,
-                                        contentDescription = null
-                                    )
-                                },
-                                trailingIcon = {
-                                    Switch(
-                                        checked = settings.showPlayerFileInfo,
-                                        onCheckedChange = { checked ->
-                                            scope.launch {
-                                                settingsRepository.save(DatastoreRepository.PreferenceKeys.SHOW_PLAYER_FILE_INFO, checked)
-                                            }
+                    DropdownMenu(
+                        expanded = showMoreMenu,
+                        onDismissRequest = { showMoreMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Show Technical File Info", fontFamily = GoogleSansRounded) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Rounded.Info,
+                                    contentDescription = null
+                                )
+                            },
+                            trailingIcon = {
+                                Switch(
+                                    checked = settings.showPlayerFileInfo,
+                                    onCheckedChange = { checked ->
+                                        scope.launch {
+                                            settingsRepository.save(DatastoreRepository.PreferenceKeys.SHOW_PLAYER_FILE_INFO, checked)
                                         }
-                                    )
-                                },
-                                onClick = {
-                                    scope.launch {
-                                        settingsRepository.save(DatastoreRepository.PreferenceKeys.SHOW_PLAYER_FILE_INFO, !settings.showPlayerFileInfo)
                                     }
+                                )
+                            },
+                            onClick = {
+                                scope.launch {
+                                    settingsRepository.save(DatastoreRepository.PreferenceKeys.SHOW_PLAYER_FILE_INFO, !settings.showPlayerFileInfo)
                                 }
-                            )
+                            }
+                        )
 
-                            DropdownMenuItem(
-                                text = { Text("Timing Sync Controls", fontFamily = GoogleSansRounded) },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Tune,
-                                        contentDescription = null
-                                    )
-                                },
-                                trailingIcon = {
-                                    Checkbox(
-                                        checked = showSyncControls,
-                                        onCheckedChange = { showSyncControls = it }
-                                    )
-                                },
-                                onClick = { showSyncControls = !showSyncControls }
-                            )
+                        DropdownMenuItem(
+                            text = { Text("Timing Sync Controls", fontFamily = GoogleSansRounded) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Rounded.Tune,
+                                    contentDescription = null
+                                )
+                            },
+                            trailingIcon = {
+                                Checkbox(
+                                    checked = showSyncControls,
+                                    onCheckedChange = { showSyncControls = it }
+                                )
+                            },
+                            onClick = { showSyncControls = !showSyncControls }
+                        )
 
-                            DropdownMenuItem(
-                                text = { Text("Auto-hide Delay Settings", fontFamily = GoogleSansRounded) },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Timer,
-                                        contentDescription = null
-                                    )
-                                },
-                                onClick = {
-                                    showMoreMenu = false
-                                    showDelayDialog = true
-                                }
-                            )
-                        }
+                        DropdownMenuItem(
+                            text = { Text("Auto-hide Delay Settings", fontFamily = GoogleSansRounded) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Rounded.Timer,
+                                    contentDescription = null
+                                )
+                            },
+                            onClick = {
+                                showMoreMenu = false
+                                showDelayDialog = true
+                            }
+                        )
                     }
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(8.dp))
+        // --- FLOATING IMMERSIVE MODE TOGGLE FAB ---
+        androidx.compose.animation.AnimatedVisibility(
+            visible = !isImmersiveActive,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 225.dp, end = 24.dp) // Offset above bottom floating card controls
+        ) {
+            val isFeatureEnabled = settings.useImmersiveLyrics
+            val fabBgColor by animateColorAsState(
+                targetValue = if (isFeatureEnabled) accentColor else onBackgroundColor.copy(alpha = 0.15f),
+                animationSpec = tween(durationMillis = 300),
+                label = "fabBg"
+            )
+            val fabContentColor by animateColorAsState(
+                targetValue = if (isFeatureEnabled) onAccentColor else onBackgroundColor,
+                animationSpec = tween(durationMillis = 300),
+                label = "fabContent"
+            )
 
-            // Main View Container for lyrics listing
             Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
+                    .size(50.dp)
+                    .clip(CircleShape)
+                    .background(fabBgColor)
+                    .clickable {
+                        scope.launch {
+                            settingsRepository.save(DatastoreRepository.PreferenceKeys.USE_IMMERSIVE_LYRICS, !settings.useImmersiveLyrics)
+                        }
+                        resetInteraction()
+                    },
                 contentAlignment = Alignment.Center
             ) {
-                when {
-                    uiState.isLoadingLyrics -> {
-                        CircularProgressIndicator(
-                            color = accentColor,
-                            modifier = Modifier.size(48.dp)
-                        )
-                    }
-                    uiState.lyrics == null -> {
-                        Text(
-                            text = "No lyrics found for this song.",
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontFamily = GoogleSansRounded,
-                                fontWeight = FontWeight.Medium
-                            ),
-                            color = onBackgroundColor.copy(alpha = 0.6f),
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(32.dp)
-                        )
-                    }
-                    else -> {
-                        val lyrics = uiState.lyrics!!
-                        val playbackProgress = uiState.playbackProgress.position
-
-                        if (showSyncedLyrics && !lyrics.synced.isNullOrEmpty()) {
-                            val activeLineIndex by remember(lyrics, playbackProgress, localOffsetMillis) {
-                                derivedStateOf {
-                                    val index = lyrics.synced.indexOfLast { (playbackProgress + localOffsetMillis) >= it.time }
-                                    if (index != -1) index else 0
-                                }
-                            }
-
-                            val lazyListState = rememberLazyListState()
-
-                            LaunchedEffect(activeLineIndex) {
-                                val target = (activeLineIndex - 2).coerceAtLeast(0)
-                                lazyListState.animateScrollToItem(target)
-                            }
-
-                            LaunchedEffect(lazyListState.isScrollInProgress) {
-                                if (lazyListState.isScrollInProgress) {
-                                    resetInteraction()
-                                }
-                            }
-
-                            val positionFlow = remember {
-                                snapshotFlow { (uiState.playbackProgress.position + localOffsetMillis).toLong() }
-                            }
-
-                            LazyColumn(
-                                state = lazyListState,
-                                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 64.dp),
-                                verticalArrangement = Arrangement.spacedBy(24.dp),
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                itemsIndexed(lyrics.synced) { index, line ->
-                                    val isActive = index == activeLineIndex
-                                    val scale by androidx.compose.animation.core.animateFloatAsState(
-                                        targetValue = if (isActive) 1.08f else 0.92f,
-                                        animationSpec = androidx.compose.animation.core.spring(
-                                            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy,
-                                            stiffness = androidx.compose.animation.core.Spring.StiffnessLow
-                                        ),
-                                        label = "scale"
-                                    )
-                                    val animatedAlpha by androidx.compose.animation.core.animateFloatAsState(
-                                        targetValue = if (isActive) 1.0f else 0.45f,
-                                        animationSpec = androidx.compose.animation.core.tween(300),
-                                        label = "alpha"
-                                    )
-                                    val animatedColor by androidx.compose.animation.animateColorAsState(
-                                        targetValue = if (isActive) accentColor else onBackgroundColor,
-                                        animationSpec = androidx.compose.animation.core.tween(300),
-                                        label = "color"
-                                    )
-
-                                    val fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Medium
-
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable {
-                                                resetInteraction()
-                                                PlayerManager.currentController?.seekTo((line.time - localOffsetMillis).toLong())
-                                            }
-                                            .padding(vertical = 4.dp),
-                                        horizontalAlignment = Alignment.Start
-                                    ) {
-                                        Text(
-                                            text = line.line,
-                                            style = androidx.compose.ui.text.TextStyle(
-                                                fontFamily = GoogleSansRounded,
-                                                fontWeight = fontWeight,
-                                                fontSize = 22.sp,
-                                                lineHeight = 22.sp * 1.4f,
-                                                textAlign = TextAlign.Start
-                                            ),
-                                            color = animatedColor,
-                                            modifier = Modifier
-                                                .graphicsLayer {
-                                                    scaleX = scale
-                                                    scaleY = scale
-                                                    transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
-                                                    this.alpha = animatedAlpha
-                                                }
-                                        )
-
-                                        if (!line.romanization.isNullOrEmpty()) {
-                                            Spacer(modifier = Modifier.height(4.dp))
-                                            Text(
-                                                text = line.romanization,
-                                                style = androidx.compose.ui.text.TextStyle(
-                                                    fontFamily = GoogleSansRounded,
-                                                    fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
-                                                    fontSize = 16.sp,
-                                                    lineHeight = 16.sp * 1.3f,
-                                                    textAlign = TextAlign.Start
-                                                ),
-                                                color = if (isActive) MaterialTheme.colorScheme.secondary else onBackgroundColor,
-                                                modifier = Modifier.graphicsLayer {
-                                                    this.alpha = animatedAlpha * 0.8f
-                                                }
-                                            )
-                                        }
-
-                                        if (!line.translation.isNullOrEmpty()) {
-                                            Spacer(modifier = Modifier.height(4.dp))
-                                            Text(
-                                                text = line.translation,
-                                                style = androidx.compose.ui.text.TextStyle(
-                                                    fontFamily = GoogleSansRounded,
-                                                    fontWeight = if (isActive) FontWeight.Medium else FontWeight.Normal,
-                                                    fontSize = 16.sp,
-                                                    lineHeight = 16.sp * 1.3f,
-                                                    textAlign = TextAlign.Start
-                                                ),
-                                                color = onBackgroundColor,
-                                                modifier = Modifier.graphicsLayer {
-                                                    this.alpha = animatedAlpha * 0.7f
-                                                }
-                                            )
-                                        }
-
-                                        if (isActive && uiState.useAnimatedLyrics) {
-                                            val nextTime = lyrics.synced.getOrNull(index + 1)?.time ?: Int.MAX_VALUE
-                                            ca.ilianokokoro.umihi.music.ui.screens.player.lyrics.BubblesLine(
-                                                positionFlow = positionFlow,
-                                                time = line.time,
-                                                color = accentColor,
-                                                nextTime = nextTime,
-                                                modifier = Modifier
-                                                    .padding(top = 8.dp)
-                                                    .then(
-                                                        if (uiState.animatedLyricsBlurEnabled) {
-                                                            Modifier.blur(2.dp)
-                                                        } else {
-                                                            Modifier
-                                                        }
-                                                    )
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        } else {
-                            val plainLines = lyrics.plain ?: emptyList()
-                            val staticListState = rememberLazyListState()
-
-                            LaunchedEffect(staticListState.isScrollInProgress) {
-                                if (staticListState.isScrollInProgress) {
-                                    resetInteraction()
-                                }
-                            }
-
-                            LazyColumn(
-                                state = staticListState,
-                                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 64.dp),
-                                verticalArrangement = Arrangement.spacedBy(20.dp),
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                itemsIndexed(plainLines) { _, line ->
-                                    Text(
-                                        text = line,
-                                        style = androidx.compose.ui.text.TextStyle(
-                                            fontFamily = GoogleSansRounded,
-                                            fontWeight = FontWeight.Medium,
-                                            fontSize = 20.sp,
-                                            lineHeight = 28.sp,
-                                            textAlign = TextAlign.Start
-                                        ),
-                                        color = onBackgroundColor.copy(alpha = 0.8f),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 4.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Immersive mode manual feature toggle floating FAB
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = !isImmersiveActive,
-                    enter = fadeIn(),
-                    exit = fadeOut(),
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(bottom = 24.dp, end = 24.dp)
-                ) {
-                    val isFeatureEnabled = settings.useImmersiveLyrics
-                    val fabBgColor by animateColorAsState(
-                        targetValue = if (isFeatureEnabled) accentColor else onBackgroundColor.copy(alpha = 0.15f),
-                        animationSpec = tween(durationMillis = 300),
-                        label = "fabBg"
-                    )
-                    val fabContentColor by animateColorAsState(
-                        targetValue = if (isFeatureEnabled) onAccentColor else onBackgroundColor,
-                        animationSpec = tween(durationMillis = 300),
-                        label = "fabContent"
-                    )
-
-                    Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(fabBgColor)
-                            .clickable {
-                                scope.launch {
-                                    settingsRepository.save(DatastoreRepository.PreferenceKeys.USE_IMMERSIVE_LYRICS, !settings.useImmersiveLyrics)
-                                }
-                                resetInteraction()
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = if (isFeatureEnabled) Icons.Rounded.Fullscreen else Icons.Rounded.FullscreenExit,
-                            contentDescription = "Toggle Immersive Feature",
-                            tint = fabContentColor,
-                            modifier = Modifier.size(26.dp)
-                        )
-                    }
-                }
+                Icon(
+                    imageVector = if (isFeatureEnabled) Icons.Rounded.Fullscreen else Icons.Rounded.FullscreenExit,
+                    contentDescription = "Toggle Immersive Feature",
+                    tint = fabContentColor,
+                    modifier = Modifier.size(24.dp)
+                )
             }
+        }
 
-            // Bottom Player Control Panel (Auto-hide in immersive mode)
-            androidx.compose.animation.AnimatedVisibility(
-                visible = !isImmersiveActive,
-                enter = fadeIn() + slideInVertically { it },
-                exit = fadeOut() + slideOutVertically { it }
+        // --- FLOATING BOTTOM PLAYER CONTROLS CARD ---
+        androidx.compose.animation.AnimatedVisibility(
+            visible = !isImmersiveActive,
+            enter = fadeIn() + slideInVertically { it },
+            exit = fadeOut() + slideOutVertically { it },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 16.dp)
+        ) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(32.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.85f)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(containerColor.copy(alpha = 0.95f))
-                        .padding(bottom = 16.dp, end = 20.dp, start = 20.dp)
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     // Timing adjustment panel controls
                     androidx.compose.animation.AnimatedVisibility(
@@ -593,9 +610,7 @@ fun LyricsSheet(
                         exit = fadeOut() + slideOutVertically { -it / 2 }
                     ) {
                         LyricsSyncControls(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 12.dp),
+                            modifier = Modifier.fillMaxWidth(),
                             offsetMillis = localOffsetMillis,
                             onOffsetChange = { localOffsetMillis = it },
                             backgroundColor = onBackgroundColor.copy(alpha = 0.08f),
@@ -607,22 +622,20 @@ fun LyricsSheet(
 
                     // Playback progress slider row
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         // Animating PlayPause box corner radius
                         val playPauseRadius by animateDpAsState(
-                            targetValue = if (uiState.isPlaying) 18.dp else 32.dp,
+                            targetValue = if (uiState.isPlaying) 16.dp else 28.dp,
                             animationSpec = spring(stiffness = Spring.StiffnessLow),
                             label = "playPauseShape"
                         )
 
                         Box(
                             modifier = Modifier
-                                .size(64.dp)
+                                .size(56.dp)
                                 .clip(RoundedCornerShape(playPauseRadius))
                                 .background(accentColor)
                                 .clickable {
@@ -644,7 +657,7 @@ fun LyricsSheet(
                                     imageVector = if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                                     contentDescription = "Play/Pause",
                                     tint = onAccentColor,
-                                    modifier = Modifier.size(28.dp)
+                                    modifier = Modifier.size(26.dp)
                                 )
                             }
                         }
@@ -677,7 +690,7 @@ fun LyricsSheet(
                         onBackgroundColor = onBackgroundColor,
                         accentColor = accentColor,
                         onAccentColor = onAccentColor,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }

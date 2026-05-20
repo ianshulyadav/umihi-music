@@ -117,4 +117,10 @@
     <string name="immersive_lyrics_desc">Automatically hides player controls during active synced playback</string>
     <string name="lyrics_autohide_delay">Auto-hide Delay</string>
     <string name="lyrics_autohide_delay_desc">Time elapsed before lyrics controls auto-hide</string>
+    <string name="color_palette">Color Palette</string>
+    <string name="color_palette_desc">Choose a minimal static color accent palette for the application</string>
+    <string name="color_palette_sage">Sage Green (Soothing)</string>
+    <string name="color_palette_purple">Classic Purple</string>
+    <string name="color_palette_blue">Ocean Blue</string>
+    <string name="color_palette_orange">Sunset Orange</string>
 </resources>

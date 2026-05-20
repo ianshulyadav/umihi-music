@@ -17,6 +17,14 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
@@ -84,9 +92,41 @@ fun HomeScreen(
                         textAlign = TextAlign.Center
                     )
                 } else {
+                    val pullState = rememberPullToRefreshState()
                     PullToRefreshBox( // TODO : Make it work on empty list
                         isRefreshing = uiState.isRefreshing,
-                        onRefresh = homeViewModel::refreshPlaylists
+                        onRefresh = homeViewModel::refreshPlaylists,
+                        state = pullState,
+                        indicator = { refreshing, state ->
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopCenter)
+                                    .padding(top = 12.dp)
+                                    .graphicsLayer {
+                                        val scale = if (refreshing) 1f else state.distanceFraction.coerceIn(0f, 1f)
+                                        scaleX = scale
+                                        scaleY = scale
+                                        alpha = scale
+                                    }
+                                    .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+                                    .padding(8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (refreshing) {
+                                    CircularWavyProgressIndicator(
+                                        modifier = Modifier.size(24.dp),
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                } else {
+                                    androidx.compose.material3.CircularProgressIndicator(
+                                        progress = { state.distanceFraction },
+                                        modifier = Modifier.size(24.dp),
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        strokeWidth = 3.dp
+                                    )
+                                }
+                            }
+                        }
                     ) {
                         LazyVerticalGrid(
                             modifier = Modifier.fillMaxSize(),

@@ -75,6 +75,7 @@ fun SettingsScreen(
 ) {
     val uiState = settingsViewModel.uiState.collectAsStateWithLifecycle().value
     var showPlayerThemeDialog by remember { mutableStateOf(false) }
+    var showColorPaletteDialog by remember { mutableStateOf(false) }
     var showAutoHideDelayDialog by remember { mutableStateOf(false) }
 
     // Refresh when returning to the screen
@@ -187,19 +188,32 @@ fun SettingsScreen(
                         "PLAYDYNAMIC" -> stringResource(R.string.player_theme_playdynamic)
                         else -> stringResource(R.string.player_theme_static)
                     }
+                    val currentPaletteLabel = when (uiState.screenState.settings.colorPalettePreference) {
+                        "PURPLE" -> stringResource(R.string.color_palette_purple)
+                        "BLUE" -> stringResource(R.string.color_palette_blue)
+                        "ORANGE" -> stringResource(R.string.color_palette_orange)
+                        else -> stringResource(R.string.color_palette_sage)
+                    }
                     SettingsItem(
                         title = stringResource(R.string.player_theme),
                         subtitle = currentThemeLabel,
                         leadingIcon = Icons.Outlined.Palette,
-                        shape = shapeFor(0, 2),
+                        shape = shapeFor(0, 3),
                         onClick = { showPlayerThemeDialog = true }
+                    )
+                    SettingsItem(
+                        title = stringResource(R.string.color_palette),
+                        subtitle = currentPaletteLabel,
+                        leadingIcon = Icons.Outlined.Palette,
+                        shape = shapeFor(1, 3),
+                        onClick = { showColorPaletteDialog = true }
                     )
                     BooleanSettingItem(
                         title = stringResource(R.string.show_player_file_info),
                         subtitle = stringResource(R.string.show_player_file_info_desc),
                         leadingIcon = Icons.Outlined.Info,
                         value = uiState.screenState.settings.showPlayerFileInfo,
-                        shape = shapeFor(1, 2),
+                        shape = shapeFor(2, 3),
                         onToggle = { settingsViewModel.updateShowPlayerFileInfoSetting(it) }
                     )
                 }
@@ -352,6 +366,61 @@ fun SettingsScreen(
                         dismissButton = {
                             TextButton(
                                 onClick = { showPlayerThemeDialog = false },
+                                shapes = ButtonDefaults.shapes()
+                            ) {
+                                Text(stringResource(R.string.close))
+                            }
+                        }
+                    )
+                }
+
+                if (showColorPaletteDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showColorPaletteDialog = false },
+                        title = { Text(stringResource(R.string.color_palette)) },
+                        text = {
+                            val options = listOf(
+                                "SAGE" to stringResource(R.string.color_palette_sage),
+                                "PURPLE" to stringResource(R.string.color_palette_purple),
+                                "BLUE" to stringResource(R.string.color_palette_blue),
+                                "ORANGE" to stringResource(R.string.color_palette_orange)
+                            )
+                            Column(Modifier.selectableGroup()) {
+                                options.forEach { option ->
+                                    val isSelected = option.first == state.settings.colorPalettePreference
+                                    Row(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .height(56.dp)
+                                            .clip(shape = RoundedCornerShape(16.dp))
+                                            .selectable(
+                                                selected = isSelected,
+                                                onClick = {
+                                                    settingsViewModel.updateColorPalettePreferenceSetting(option.first)
+                                                    showColorPaletteDialog = false
+                                                },
+                                                role = Role.RadioButton
+                                            )
+                                            .padding(horizontal = 16.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        RadioButton(
+                                            selected = isSelected,
+                                            onClick = null
+                                        )
+                                        Text(
+                                            text = option.second,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            modifier = Modifier.padding(start = 16.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        confirmButton = {},
+                        dismissButton = {
+                            TextButton(
+                                onClick = { showColorPaletteDialog = false },
                                 shapes = ButtonDefaults.shapes()
                             ) {
                                 Text(stringResource(R.string.close))

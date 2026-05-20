@@ -30,7 +30,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import ca.ilianokokoro.umihi.music.ui.theme.LocalMaterialTheme
 
 @Composable
 fun ToggleSegmentButton(
@@ -39,8 +38,8 @@ fun ToggleSegmentButton(
     enabled: Boolean = true,
     activeColor: Color,
     inactiveColor: Color = Color.Gray,
-    activeContentColor: Color = LocalMaterialTheme.current.onPrimary,
-    inactiveContentColor: Color = LocalMaterialTheme.current.onSurfaceVariant,
+    activeContentColor: Color = MaterialTheme.colorScheme.onPrimary,
+    inactiveContentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     activeCornerRadius: Dp = 8.dp,
     onClick: () -> Unit,
     imageVector: ImageVector,
@@ -71,8 +70,8 @@ fun ToggleSegmentButton(
     enabled: Boolean = true,
     activeColor: Color,
     inactiveColor: Color = Color.Gray,
-    activeContentColor: Color = LocalMaterialTheme.current.onPrimary,
-    inactiveContentColor: Color = LocalMaterialTheme.current.primary,
+    activeContentColor: Color = MaterialTheme.colorScheme.onPrimary,
+    inactiveContentColor: Color = MaterialTheme.colorScheme.primary,
     activeCornerRadius: Dp = 8.dp,
     onClick: () -> Unit,
     text: String
@@ -102,8 +101,8 @@ fun ToggleSegmentButton(
     enabled: Boolean = true,
     activeColor: Color,
     inactiveColor: Color = Color.Gray,
-    activeContentColor: Color = LocalMaterialTheme.current.onPrimary,
-    inactiveContentColor: Color = LocalMaterialTheme.current.onSurfaceVariant,
+    activeContentColor: Color = MaterialTheme.colorScheme.onPrimary,
+    inactiveContentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     activeCornerRadius: Dp = 8.dp,
     onClick: () -> Unit,
     text: String,
