@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.requiredHeight
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,8 +33,9 @@ import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -54,15 +56,18 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ca.ilianokokoro.umihi.music.core.managers.PlayerManager
 import ca.ilianokokoro.umihi.music.models.Song
 import ca.ilianokokoro.umihi.music.ui.components.SquareImage
 import ca.ilianokokoro.umihi.music.ui.screens.player.PlayerSheetState
-import ca.ilianokokoro.umihi.music.ui.theme.LocalAlbumColorScheme
-import ca.ilianokokoro.umihi.music.ui.theme.LocalPixelPlayDarkTheme
 import ca.ilianokokoro.umihi.music.ui.screens.player.PlayerState
 import ca.ilianokokoro.umihi.music.ui.screens.player.PlayerViewModel
+import ca.ilianokokoro.umihi.music.ui.screens.player.TopPlayerHeader
+import ca.ilianokokoro.umihi.music.ui.theme.GoogleSansRounded
+import ca.ilianokokoro.umihi.music.ui.theme.LocalAlbumColorScheme
+import ca.ilianokokoro.umihi.music.ui.theme.LocalPixelPlayDarkTheme
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -219,7 +224,11 @@ fun UnifiedPlayerSheet(
                     )
                 }
 
-                Box(modifier = Modifier.fillMaxWidth()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp)
+                ) {
                     MiniPlayerHeader(
                         currentSong = currentSong,
                         isPlaying = isPlaying,
@@ -287,13 +296,17 @@ private fun MiniPlayerHeader(
             .height(SheetCollapsedHeight)
             .graphicsLayer {
                 this.alpha = alpha
-                this.translationX = offsetAnimatable.value
+                translationX = offsetAnimatable.value
+                shadowElevation = 12f
             }
-            .clip(RoundedCornerShape(28.dp))
-            .background(miniContainerColor)
             .miniPlayerDismissHorizontalGesture(true, dismissHandler)
             .clickable { onExpand() },
-        colors = CardDefaults.cardColors(containerColor = miniContainerColor)
+        colors = CardDefaults.cardColors(
+            containerColor = miniContainerColor,
+            contentColor = miniOnContainerColor
+        ),
+        shape = RoundedCornerShape(32.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
     ) {
         Row(
             modifier = Modifier
@@ -316,7 +329,7 @@ private fun MiniPlayerHeader(
                     androidx.compose.material3.CircularProgressIndicator(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(12.dp),
+                            .padding(10.dp),
                         strokeWidth = 2.dp,
                         color = miniOnContainerColor
                     )
@@ -327,42 +340,77 @@ private fun MiniPlayerHeader(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(
+                    Text(
                     text = currentSong.title,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontFamily = GoogleSansRounded,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                        fontSize = 15.sp,
+                        letterSpacing = (-0.2).sp
+                    ),
                     color = miniOnContainerColor,
                     maxLines = 1
                 )
                 Text(
                     text = currentSong.artist,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontFamily = GoogleSansRounded,
+                        fontSize = 13.sp,
+                        letterSpacing = 0.sp
+                    ),
                     color = miniOnContainerColor.copy(alpha = 0.72f),
                     maxLines = 1
                 )
             }
 
-            IconButton(onClick = onSkipPrevious, enabled = !isLoading) {
-                Icon(
-                    imageVector = Icons.Rounded.SkipPrevious,
-                    contentDescription = null,
-                    tint = miniOnContainerColor
-                )
-            }
-            IconButton(onClick = onPlayPause, enabled = !isLoading) {
-                Icon(
-                    imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                    contentDescription = null,
-                    tint = miniOnContainerColor
-                )
-            }
-            IconButton(onClick = onSkipNext, enabled = !isLoading) {
-                Icon(
-                    imageVector = Icons.Rounded.SkipNext,
-                    contentDescription = null,
-                    tint = miniOnContainerColor
-                )
-            }
+            MiniPlayerControlButton(
+                icon = Icons.Rounded.SkipPrevious,
+                tint = miniOnContainerColor,
+                background = miniOnContainerColor.copy(alpha = 0.16f),
+                enabled = !isLoading,
+                onClick = onSkipPrevious
+            )
+            MiniPlayerControlButton(
+                icon = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                tint = miniContainerColor,
+                background = miniOnContainerColor,
+                enabled = !isLoading,
+                onClick = onPlayPause
+            )
+            MiniPlayerControlButton(
+                icon = Icons.Rounded.SkipNext,
+                tint = miniOnContainerColor,
+                background = miniOnContainerColor.copy(alpha = 0.16f),
+                enabled = !isLoading,
+                onClick = onSkipNext
+            )
         }
+    }
+}
+
+@Composable
+private fun MiniPlayerControlButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    tint: androidx.compose.ui.graphics.Color,
+    background: androidx.compose.ui.graphics.Color,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    FilledIconButton(
+        onClick = onClick,
+        enabled = enabled,
+        colors = IconButtonDefaults.filledIconButtonColors(
+            containerColor = background,
+            contentColor = tint
+        ),
+        shape = CircleShape,
+        modifier = Modifier.size(36.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp)
+        )
     }
 }
 
@@ -387,38 +435,16 @@ private fun FullPlayerContent(
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            IconButton(
-                onClick = onCollapse,
-                modifier = Modifier
-                    .size(44.dp)
-                    .background(sheetSurfaceColor, CircleShape)
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.KeyboardArrowDown,
-                    contentDescription = "Collapse player",
-                    tint = activeScheme?.onSurface ?: MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            Text(
-                text = "Now playing",
-                style = MaterialTheme.typography.titleMedium,
-                color = activeScheme?.onSurface ?: MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f)
-            )
-
-            Spacer(modifier = Modifier.size(44.dp))
-        }
+        TopPlayerHeader(
+            onBack = onCollapse,
+            onOpenQueue = { playerViewModel.setQueueVisibility(true) },
+            modifier = Modifier.fillMaxWidth()
+        )
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(320.dp)
+                .aspectRatio(1f)
                 .clip(RoundedCornerShape(32.dp))
                 .background(sheetSurfaceVariantColor),
             contentAlignment = Alignment.Center

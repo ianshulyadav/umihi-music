@@ -40,6 +40,8 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -558,17 +560,20 @@ fun TopPlayerHeader(
         contentAlignment = Alignment.Center
     ) {
         // Back / Dropdown Arrow button
-        androidx.compose.material3.IconButton(
+        FilledIconButton(
             onClick = onBack,
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurface
+            ),
+            shape = CircleShape,
             modifier = Modifier
                 .align(Alignment.CenterStart)
                 .size(44.dp)
-                .background(MaterialTheme.colorScheme.surface, CircleShape)
         ) {
             androidx.compose.material3.Icon(
                 imageVector = Icons.Rounded.KeyboardArrowDown,
                 contentDescription = "Go Back",
-                tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(28.dp)
             )
         }
@@ -591,7 +596,7 @@ fun TopPlayerHeader(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Cast/Bluetooth (Connect device) Button
-            androidx.compose.material3.IconButton(
+            FilledIconButton(
                 onClick = {
                     val intent = android.content.Intent().apply {
                         action = "com.android.settings.PLAYBACK_MEDIA_OUTPUT"
@@ -611,9 +616,13 @@ fun TopPlayerHeader(
                         }
                     }
                 },
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                shape = RoundedCornerShape(14.dp),
                 modifier = Modifier
                     .size(44.dp)
-                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(14.dp))
             ) {
                 androidx.compose.material3.Icon(
                     imageVector = Icons.Rounded.Cast,
@@ -624,11 +633,15 @@ fun TopPlayerHeader(
             }
 
             // Queue Button
-            androidx.compose.material3.IconButton(
+            FilledIconButton(
                 onClick = onOpenQueue,
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                shape = RoundedCornerShape(14.dp),
                 modifier = Modifier
                     .size(44.dp)
-                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(14.dp))
             ) {
                 androidx.compose.material3.Icon(
                     imageVector = Icons.AutoMirrored.Rounded.QueueMusic,
@@ -639,11 +652,15 @@ fun TopPlayerHeader(
             }
 
             // More Options Button
-            androidx.compose.material3.IconButton(
+            FilledIconButton(
                 onClick = { showMenu = !showMenu },
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                shape = RoundedCornerShape(14.dp),
                 modifier = Modifier
                     .size(44.dp)
-                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(14.dp))
             ) {
                 androidx.compose.material3.Icon(
                     imageVector = Icons.Filled.MoreVert,
