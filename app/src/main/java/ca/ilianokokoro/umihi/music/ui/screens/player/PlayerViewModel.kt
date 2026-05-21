@@ -13,6 +13,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
+import androidx.media3.session.MediaController
 import ca.ilianokokoro.umihi.music.core.Constants
 import ca.ilianokokoro.umihi.music.core.managers.PlayerManager
 import ca.ilianokokoro.umihi.music.extensions.getQueue
@@ -64,8 +65,24 @@ class PlayerViewModel(application: Application) :
         }
     }
 
+    private var attachedController: MediaController? = null
+
     init {
-        PlayerManager.currentController?.addListener(playerListener)
+        viewModelScope.launch {
+            PlayerManager.controllerState.collect { controller ->
+                if (controller != attachedController) {
+                    attachedController?.removeListener(playerListener)
+                    controller?.addListener(playerListener)
+                    attachedController = controller
+                }
+
+                if (controller != null) {
+                    updateCurrentSong()
+                    updateIsLoadingState()
+                    updateIsPlayingState()
+                }
+            }
+        }
 
         startProgressUpdate()
         updateCurrentSong()
@@ -87,7 +104,7 @@ class PlayerViewModel(application: Application) :
 
     override fun onCleared() {
         super.onCleared()
-        PlayerManager.currentController?.removeListener(playerListener)
+        attachedController?.removeListener(playerListener)
     }
 
     fun expandPlayerSheet() {
