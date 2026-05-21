@@ -105,7 +105,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material.icons.rounded.MoreHoriz
-import androidx.compose.material.icons.rounded.PlaylistAdd
+import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.AlertDialog
@@ -115,12 +115,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.zIndex
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
-import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.ui.graphics.toArgb
-import ca.ilianokokoro.umihi.music.ui.theme.PixelPlayStatusBarStyle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -166,24 +160,12 @@ fun QueueBottomSheet(
         )
     }
 
-    BackHandler {
-        changeVisibility(false)
-    }
-
-    val isSystemDark = isSystemInDarkTheme()
-    val containerColor = MaterialTheme.colorScheme.surfaceContainer
-    PixelPlayStatusBarStyle(
-        color = Color.Transparent,
-        useDarkIcons = if (isSystemDark) false else (androidx.core.graphics.ColorUtils.calculateLuminance(containerColor.toArgb()) > 0.5)
-    )
-
     ModalBottomSheet(
         onDismissRequest = {
             changeVisibility(false)
         },
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = containerColor,
-        contentWindowInsets = { WindowInsets(0, 0, 0, 0) }
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Box(
             modifier = Modifier
@@ -432,7 +414,7 @@ fun QueueBottomSheet(
                         )
                         QueueToolbarMenuButton(
                             text = "Save As Playlist",
-                            icon = Icons.Rounded.PlaylistAdd,
+                            icon = Icons.AutoMirrored.Rounded.PlaylistAdd,
                             containerColor = MaterialTheme.colorScheme.primaryContainer,
                             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                             onClick = {
@@ -445,126 +427,57 @@ fun QueueBottomSheet(
                 }
             }
 
-            // Unified opaque M3 Floating Controls Bar
-            val isTimerActive = remember {
-                derivedStateOf { sleepTimerRemaining != null }
-            }
-
-            Surface(
+            // Bottom Controls Bar Row
+            Row(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 28.dp)
-                    .height(64.dp)
+                    .height(68.dp)
                     .zIndex(40f),
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                tonalElevation = 8.dp,
-                shadowElevation = 8.dp,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier
-                        .padding(horizontal = 8.dp)
-                        .fillMaxHeight(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    // Shuffle
-                    IconButton(
-                        onClick = {
-                            PlayerManager.currentController?.let {
-                                it.shuffleModeEnabled = !it.shuffleModeEnabled
-                            }
-                        },
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = if (isShuffleEnabled) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-                            contentColor = if (isShuffleEnabled) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Shuffle,
-                            contentDescription = "Toggle Shuffle",
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-
-                    // Repeat
-                    IconButton(
-                        onClick = {
-                            PlayerManager.currentController?.let {
-                                it.repeatMode = when (it.repeatMode) {
-                                    Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
-                                    Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
-                                    Player.REPEAT_MODE_ONE -> Player.REPEAT_MODE_OFF
-                                    else -> Player.REPEAT_MODE_OFF
-                                }
-                            }
-                        },
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = if (repeatMode != Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-                            contentColor = if (repeatMode != Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        val repeatIcon = when (repeatMode) {
-                            Player.REPEAT_MODE_ONE -> Icons.Rounded.RepeatOne
-                            else -> Icons.Rounded.Repeat
+                val isTimerActive = remember {
+                    derivedStateOf { sleepTimerRemaining != null }
+                }
+                QueueControlsToolbar(
+                    isShuffleOn = isShuffleEnabled,
+                    repeatMode = repeatMode,
+                    isTimerActive = isTimerActive,
+                    onToggleShuffle = {
+                        PlayerManager.currentController?.let {
+                            it.shuffleModeEnabled = !it.shuffleModeEnabled
                         }
-                        Icon(
-                            imageVector = repeatIcon,
-                            contentDescription = "Toggle Repeat",
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
+                    },
+                    onToggleRepeat = {
+                        PlayerManager.currentController?.let {
+                            it.repeatMode = when (it.repeatMode) {
+                                Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                                Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                                Player.REPEAT_MODE_ONE -> Player.REPEAT_MODE_OFF
+                                else -> Player.REPEAT_MODE_OFF
+                            }
+                        }
+                    },
+                    onTimerClick = { showTimerOptions = true }
+                )
 
-                    // Sleep Timer
-                    IconButton(
-                        onClick = { showTimerOptions = true },
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = if (isTimerActive.value) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-                            contentColor = if (isTimerActive.value) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Snooze,
-                            contentDescription = "Sleep Timer",
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
+                Spacer(modifier = Modifier.width(4.dp))
 
-                    // Subtle divider
-                    Box(
-                        modifier = Modifier
-                            .padding(horizontal = 6.dp)
-                            .width(1.dp)
-                            .height(24.dp)
-                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                FloatingActionButton(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .aspectRatio(1f),
+                    onClick = { isFabExpanded = !isFabExpanded },
+                    shape = RoundedCornerShape(topStart = 8.dp, bottomEnd = 50.dp, topEnd = 8.dp, bottomStart = 50.dp),
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                    elevation = FloatingActionButtonDefaults.elevation(0.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.MoreHoriz,
+                        contentDescription = "Queue Actions"
                     )
-
-                    // More Actions FAB
-                    IconButton(
-                        onClick = { isFabExpanded = !isFabExpanded },
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-                        ),
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        val rotation by animateFloatAsState(
-                            targetValue = if (isFabExpanded) 90f else 0f,
-                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-                            label = "rotation"
-                        )
-                        Icon(
-                            imageVector = Icons.Rounded.MoreHoriz,
-                            contentDescription = "Queue Actions",
-                            modifier = Modifier
-                                .size(22.dp)
-                                .graphicsLayer { rotationZ = rotation }
-                        )
-                    }
                 }
             }
 
@@ -861,7 +774,75 @@ fun QueuePlaylistSongItem(
     }
 }
 
+@Composable
+private fun QueueControlsToolbar(
+    isShuffleOn: Boolean,
+    repeatMode: Int,
+    isTimerActive: androidx.compose.runtime.State<Boolean>,
+    onToggleShuffle: () -> Unit,
+    onToggleRepeat: () -> Unit,
+    onTimerClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val activeColors = IconButtonDefaults.filledIconButtonColors(
+        containerColor = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary
+    )
+    val inactiveColors = IconButtonDefaults.filledTonalIconButtonColors(
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+    )
 
+    Surface(
+        modifier = modifier.fillMaxHeight(),
+        shape = RoundedCornerShape(topStart = 50.dp, bottomEnd = 50.dp, topEnd = 8.dp, bottomStart = 8.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        shadowElevation = 0.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            FilledTonalIconButton(
+                onClick = onToggleShuffle,
+                colors = if (isShuffleOn) activeColors else inactiveColors,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Shuffle,
+                    contentDescription = "Toggle Shuffle",
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            FilledTonalIconButton(
+                onClick = onToggleRepeat,
+                colors = if (repeatMode != Player.REPEAT_MODE_OFF) activeColors else inactiveColors,
+                modifier = Modifier.size(48.dp)
+            ) {
+                val repeatIcon = when (repeatMode) {
+                    Player.REPEAT_MODE_ONE -> Icons.Rounded.RepeatOne
+                    else -> Icons.Rounded.Repeat
+                }
+                Icon(
+                    imageVector = repeatIcon,
+                    contentDescription = "Toggle Repeat",
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            FilledTonalIconButton(
+                onClick = onTimerClick,
+                colors = if (isTimerActive.value) activeColors else inactiveColors,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Snooze,
+                    contentDescription = "Sleep Timer",
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun QueueToolbarMenuButton(

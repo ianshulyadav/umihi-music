@@ -15,22 +15,24 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
@@ -38,23 +40,20 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import ca.ilianokokoro.umihi.music.R
 import ca.ilianokokoro.umihi.music.core.Constants
 import ca.ilianokokoro.umihi.music.core.helpers.UmihiHelper.printe
 import ca.ilianokokoro.umihi.music.ui.components.BackButton
-import ca.ilianokokoro.umihi.music.ui.components.miniplayer.MiniPlayerWrapper
 import ca.ilianokokoro.umihi.music.ui.screens.auth.AuthScreen
 import ca.ilianokokoro.umihi.music.ui.screens.home.HomeScreen
-import ca.ilianokokoro.umihi.music.ui.screens.player.PlayerScreen
+import ca.ilianokokoro.umihi.music.ui.screens.player.PlayerViewModel
+import ca.ilianokokoro.umihi.music.ui.screens.player.components.UnifiedPlayerSheet
 import ca.ilianokokoro.umihi.music.ui.screens.playlist.PlaylistScreen
 import ca.ilianokokoro.umihi.music.ui.screens.search.SearchScreen
 import ca.ilianokokoro.umihi.music.ui.screens.settings.SettingsScreen
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
-import androidx.navigation3.ui.LocalNavAnimatedContentScope
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
@@ -73,6 +72,10 @@ fun NavigationRoot(modifier: Modifier = Modifier) {
         )
     )
 
+    val playerViewModel: PlayerViewModel = viewModel(
+        factory = PlayerViewModel.Factory(application = app)
+    )
+
     SharedTransitionLayout {
         Scaffold(
         modifier = modifier
@@ -80,11 +83,10 @@ fun NavigationRoot(modifier: Modifier = Modifier) {
             .background(MaterialTheme.colorScheme.background),
 
         topBar = {
-            if (currentScreen != PlayerScreenKey) {
+            val hasTitle = screenConfig.titleId != 0 || screenConfig.title.isNotBlank()
+            if (screenConfig.showBack || hasTitle) {
                 TopAppBar(
                     title = {
-                        val hasTitle = screenConfig.titleId != 0 || screenConfig.title.isNotBlank()
-
                         AnimatedVisibility(
                             visible = hasTitle,
                             enter = fadeIn(tween(Constants.Animation.NAVIGATION_DURATION)),
@@ -109,28 +111,11 @@ fun NavigationRoot(modifier: Modifier = Modifier) {
         },
         bottomBar = {
             Column {
-                val miniPlayerModifier = if (screenConfig.showBottomBar) {
-                    Modifier.fillMaxWidth()
-                } else {
-                    Modifier
-                        .fillMaxWidth()
-                        .windowInsetsPadding(WindowInsets.navigationBars)
-                }
-
-                MiniPlayerWrapper(
-                    showMiniPlayer = screenConfig.showMiniPlayer,
-                    onMiniPlayerPressed = { backStack.add(PlayerScreenKey) },
-                    modifier = miniPlayerModifier,
-                    sharedTransitionScope = this@SharedTransitionLayout
-                )
-
                 AnimatedVisibility(
                     visible = screenConfig.showBottomBar,
                     enter = slideInVertically { it } + fadeIn(),
                     exit = slideOutVertically { it } + fadeOut()
                 ) {
-
-
                     BottomNavigationBar(
                         currentTab = screenConfig.selectedTab,
                         onTabSelected = { key ->
@@ -157,55 +142,34 @@ fun NavigationRoot(modifier: Modifier = Modifier) {
                     rememberViewModelStoreNavEntryDecorator(),
                 ),
                 transitionSpec = {
-                    val isEnteringPlayer = targetState.key == PlayerScreenKey
-                    val isExitingPlayer = initialState.key == PlayerScreenKey
-                    if (isEnteringPlayer || isExitingPlayer) {
-                        fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
-                        fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
-                    } else {
-                        slideInHorizontally(
-                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
-                            initialOffsetX = { it }
-                        ) + fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
-                        slideOutHorizontally(
-                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
-                            targetOffsetX = { -it / 3 }
-                        ) + fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
-                    }
+                    slideInHorizontally(
+                        animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
+                        initialOffsetX = { it }
+                    ) + fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
+                    slideOutHorizontally(
+                        animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
+                        targetOffsetX = { -it / 3 }
+                    ) + fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
                 },
                 popTransitionSpec = {
-                    val isEnteringPlayer = targetState.key == PlayerScreenKey
-                    val isExitingPlayer = initialState.key == PlayerScreenKey
-                    if (isEnteringPlayer || isExitingPlayer) {
-                        fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
-                        fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
-                    } else {
-                        slideInHorizontally(
-                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
-                            initialOffsetX = { -it / 3 }
-                        ) + fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
-                        slideOutHorizontally(
-                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
-                            targetOffsetX = { it }
-                        ) + fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
-                    }
+                    slideInHorizontally(
+                        animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
+                        initialOffsetX = { -it / 3 }
+                    ) + fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
+                    slideOutHorizontally(
+                        animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
+                        targetOffsetX = { it }
+                    ) + fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
                 },
                 predictivePopTransitionSpec = {
-                    val isEnteringPlayer = targetState.key == PlayerScreenKey
-                    val isExitingPlayer = initialState.key == PlayerScreenKey
-                    if (isEnteringPlayer || isExitingPlayer) {
-                        fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
-                        fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
-                    } else {
-                        slideInHorizontally(
-                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
-                            initialOffsetX = { -it / 3 }
-                        ) + fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
-                        slideOutHorizontally(
-                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
-                            targetOffsetX = { it }
-                        ) + fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
-                    }
+                    slideInHorizontally(
+                        animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
+                        initialOffsetX = { -it / 3 }
+                    ) + fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
+                    slideOutHorizontally(
+                        animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
+                        targetOffsetX = { it }
+                    ) + fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
                 },
                 entryProvider = { key ->
                     when (key) {
@@ -229,7 +193,7 @@ fun NavigationRoot(modifier: Modifier = Modifier) {
                         is PlaylistScreenKey -> NavEntry(key) {
                             PlaylistScreen(
                                 playlistInfo = key.playlistInfo,
-                                onOpenPlayer = { backStack.add(PlayerScreenKey) },
+                                onOpenPlayer = playerViewModel::expandPlayerSheet,
                                 application = app
                             )
                         }
@@ -239,34 +203,6 @@ fun NavigationRoot(modifier: Modifier = Modifier) {
                                 onBack = backStack::safePop,
                                 application = app
                             )
-                        }
-
-                        is PlayerScreenKey -> NavEntry(
-                            key,
-                            metadata = Constants.Animation.SLIDE_UP_TRANSITION
-                        ) {
-                            val animatedVisibilityScope = LocalNavAnimatedContentScope.current
-                            val albumScheme = ca.ilianokokoro.umihi.music.ui.theme.LocalAlbumColorScheme.current
-                            if (settings.playerThemePreference == "PLAYDYNAMIC" && albumScheme != null) {
-                                ca.ilianokokoro.umihi.music.ui.theme.UmihiMusicTheme(
-                                    dynamicColor = false,
-                                    colorSchemePairOverride = albumScheme
-                                ) {
-                                    PlayerScreen(
-                                        onBack = backStack::safePop,
-                                        application = app,
-                                        sharedTransitionScope = this@SharedTransitionLayout,
-                                        animatedVisibilityScope = animatedVisibilityScope
-                                    )
-                                }
-                            } else {
-                                PlayerScreen(
-                                    onBack = backStack::safePop,
-                                    application = app,
-                                    sharedTransitionScope = this@SharedTransitionLayout,
-                                    animatedVisibilityScope = animatedVisibilityScope
-                                )
-                            }
                         }
 
                         is SearchScreenKey -> NavEntry(key) {
@@ -283,6 +219,13 @@ fun NavigationRoot(modifier: Modifier = Modifier) {
                         )
                     }
                 }
+            )
+
+            UnifiedPlayerSheet(
+                playerViewModel = playerViewModel,
+                showMiniPlayer = screenConfig.showMiniPlayer,
+                bottomBarVisible = screenConfig.showBottomBar,
+                modifier = Modifier.fillMaxWidth()
             )
         }
       }

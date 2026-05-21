@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * AutoQueueManager — Radio Mode
@@ -32,6 +33,7 @@ object AutoQueueManager {
     private var scope: CoroutineScope? = null
     private var datastoreRepository: DatastoreRepository? = null
     private val songRepository = SongRepository()
+    private var playerRef: Player? = null
 
     private val playerListener = object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -48,12 +50,14 @@ object AutoQueueManager {
     fun attach(player: Player, datastoreRepo: DatastoreRepository, coroutineScope: CoroutineScope) {
         scope = coroutineScope
         datastoreRepository = datastoreRepo
+        playerRef = player
         player.addListener(playerListener)
         printd("AutoQueueManager attached")
     }
 
     fun detach(player: Player?) {
         player?.removeListener(playerListener)
+        playerRef = null
         fetchJob?.cancel()
         scope = null
         datastoreRepository = null
@@ -61,24 +65,30 @@ object AutoQueueManager {
 
     private fun checkAndRefillQueue() {
         val currentScope = scope ?: return
-        val controller = PlayerManager.currentController ?: return
+        val player = playerRef ?: return
 
         currentScope.launch(Dispatchers.IO) {
             val settings = datastoreRepository?.settings?.first() ?: return@launch
             if (!settings.autoQueueEnabled) return@launch
 
-            val currentIndex = controller.currentMediaItemIndex
-            val totalCount = controller.mediaItemCount
-            val remaining = totalCount - currentIndex - 1
+            val playerState = withContext(Dispatchers.Main) {
+                if (playerRef == null) null
+                else {
+                    val currentIndex = player.currentMediaItemIndex
+                    val totalCount = player.mediaItemCount
+                    val remaining = totalCount - currentIndex - 1
+                    val currentId = player.currentMediaItem?.mediaId
+                    Triple(remaining, currentId, totalCount)
+                }
+            } ?: return@launch
 
+            val (remaining, currentId, totalCount) = playerState
             if (remaining > TRIGGER_REMAINING) return@launch
-
-            val currentId = controller.currentMediaItem?.mediaId ?: return@launch
-            if (currentId == lastFetchedVideoId) return@launch
+            if (currentId == null || currentId == lastFetchedVideoId) return@launch
             lastFetchedVideoId = currentId
 
             printd("AutoQueueManager: Only $remaining songs remaining. Fetching related for $currentId")
-            fetchAndAppend(currentId, controller)
+            fetchAndAppend(currentId, player)
         }
     }
 

@@ -90,6 +90,42 @@ class PlayerViewModel(application: Application) :
         PlayerManager.currentController?.removeListener(playerListener)
     }
 
+    fun expandPlayerSheet() {
+        _uiState.update { it.copy(sheetState = PlayerSheetState.EXPANDED) }
+    }
+
+    fun collapsePlayerSheet() {
+        _uiState.update { it.copy(sheetState = PlayerSheetState.COLLAPSED) }
+    }
+
+    fun togglePlayerSheetState() {
+        _uiState.update {
+            it.copy(
+                sheetState = if (it.sheetState == PlayerSheetState.COLLAPSED) {
+                    PlayerSheetState.EXPANDED
+                } else {
+                    PlayerSheetState.COLLAPSED
+                }
+            )
+        }
+    }
+
+    fun dismissPlaylist() {
+        val controller = PlayerManager.currentController ?: return
+        controller.stop()
+        controller.clearMediaItems()
+        lastUpdatedSongIndex = -1
+        _uiState.update {
+            it.copy(
+                queue = mutableListOf(),
+                currentIndex = -1,
+                isPlaying = false,
+                sheetState = PlayerSheetState.COLLAPSED
+            )
+        }
+    }
+
+
 
     fun seekPlayer() {
         PlayerManager.currentController?.seekTo(_uiState.value.playbackProgress.position.toLong())

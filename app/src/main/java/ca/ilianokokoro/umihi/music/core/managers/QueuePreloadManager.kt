@@ -41,6 +41,7 @@ object QueuePreloadManager {
     private var scope: CoroutineScope? = null
     private var appContext: Context? = null
     private var datastoreRepository: DatastoreRepository? = null
+    private var playerRef: Player? = null
 
     private val playerListener = object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -57,12 +58,14 @@ object QueuePreloadManager {
         scope = coroutineScope
         appContext = context.applicationContext
         datastoreRepository = datastoreRepo
+        playerRef = player
         player.addListener(playerListener)
         printd("QueuePreloadManager attached")
     }
 
     fun detach(player: Player?) {
         player?.removeListener(playerListener)
+        playerRef = null
         preloadJob?.cancel()
         scope = null
         appContext = null
@@ -70,12 +73,13 @@ object QueuePreloadManager {
     }
 
     fun onControllerReady(player: Player) {
+        playerRef = player
         player.addListener(playerListener)
     }
 
     private fun triggerPreload() {
         val currentScope = scope ?: return
-        val controller = PlayerManager.currentController ?: return
+        val player = playerRef ?: return
         val ctx = appContext ?: return
 
         preloadJob?.cancel()
@@ -83,14 +87,18 @@ object QueuePreloadManager {
             val settings = datastoreRepository?.settings?.first() ?: return@launch
             if (!settings.preloadQueueEnabled) return@launch
 
-            val currentIndex = controller.currentMediaItemIndex
-            val totalCount = controller.mediaItemCount
+            val playerState = withContext(Dispatchers.Main) {
+                if (playerRef == null) null
+                else Pair(player.currentMediaItemIndex, player.mediaItemCount)
+            } ?: return@launch
+
+            val (currentIndex, totalCount) = playerState
 
             val indicesAhead = (currentIndex + 1)..(currentIndex + PRELOAD_AHEAD).coerceAtMost(totalCount - 1)
 
             for (i in indicesAhead) {
                 val mediaItem = withContext(Dispatchers.Main) {
-                    if (i < controller.mediaItemCount) controller.getMediaItemAt(i) else null
+                    if (playerRef != null && i < player.mediaItemCount) player.getMediaItemAt(i) else null
                 } ?: continue
 
                 val videoId = mediaItem.mediaId

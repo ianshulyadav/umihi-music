@@ -3,6 +3,8 @@ package ca.ilianokokoro.umihi.music.ui.screens.player
 import ca.ilianokokoro.umihi.music.models.Song
 
 
+enum class PlayerSheetState { COLLAPSED, EXPANDED }
+
 data class PlayerState(
     val queue: MutableList<Song> = mutableListOf(),
     val currentIndex: Int = -1,
@@ -22,6 +24,7 @@ data class PlayerState(
     val audioBitrate: String? = null,
     val autoQueueEnabled: Boolean = true,
     val isAutoQueuing: Boolean = false,
+    val sheetState: PlayerSheetState = PlayerSheetState.COLLAPSED,
 )
 
 data class PlaybackProgress(
