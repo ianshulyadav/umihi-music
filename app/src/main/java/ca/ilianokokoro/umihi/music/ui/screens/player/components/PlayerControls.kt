@@ -154,7 +154,7 @@ fun PlayerControls(
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontFamily = GoogleSansRounded,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = activeScheme?.onSurface ?: MaterialTheme.colorScheme.onSurface
                     ),
                     modifier = Modifier.basicMarquee()
                 )
@@ -162,7 +162,7 @@ fun PlayerControls(
                     text = song?.artist ?: "",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontFamily = GoogleSansRounded,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = activeScheme?.onSurfaceVariant ?: MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Bold
                     ),
                     modifier = Modifier.basicMarquee()
@@ -174,12 +174,12 @@ fun PlayerControls(
                 onClick = onToggleLyrics,
                 modifier = Modifier
                     .size(44.dp)
-                    .background(MaterialTheme.colorScheme.surface, CircleShape)
+                    .background(activeScheme?.surfaceVariant?.copy(alpha = 0.5f) ?: MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
             ) {
                 androidx.compose.material3.Icon(
                     imageVector = Icons.Rounded.Lyrics,
                     contentDescription = "Lyrics",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = activeScheme?.onSurfaceVariant ?: MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -235,10 +235,11 @@ fun PlayerControls(
                 val size = audioSize ?: ""
                 val badgeText = if (size.isNotEmpty()) "$format • $size" else format
 
+                val themePrimaryColor = activeScheme?.primary ?: MaterialTheme.colorScheme.primary
                 Box(
                     modifier = Modifier
                         .background(
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            color = themePrimaryColor.copy(alpha = 0.15f),
                             shape = RoundedCornerShape(8.dp)
                         )
                         .padding(horizontal = 10.dp, vertical = 4.dp)
@@ -248,7 +249,7 @@ fun PlayerControls(
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontFamily = GoogleSansRounded,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = themePrimaryColor
                         )
                     )
                 }
@@ -342,46 +343,6 @@ fun PlayerControls(
             )
         }
 
-        // Sync / Download Toggle Buttons
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .graphicsLayer {
-                    alpha = secondaryAlpha
-                    translationY = secondaryOffsetY
-                },
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            ToggleSegmentButton(
-                modifier = Modifier
-                    .weight(1f)
-                    .size(height = 44.dp, width = 1.dp),
-                active = isSyncActive,
-                activeColor = MaterialTheme.colorScheme.primaryContainer,
-                inactiveColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                activeContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                activeCornerRadius = 16.dp,
-                onClick = { isSyncActive = !isSyncActive },
-                imageVector = Icons.Rounded.Refresh,
-                contentDesc = "Sync"
-            )
-            ToggleSegmentButton(
-                modifier = Modifier
-                    .weight(1f)
-                    .size(height = 44.dp, width = 1.dp),
-                active = isDownloadActive,
-                activeColor = MaterialTheme.colorScheme.primaryContainer,
-                inactiveColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                activeContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                activeCornerRadius = 16.dp,
-                onClick = { isDownloadActive = !isDownloadActive },
-                imageVector = Icons.Rounded.CloudDownload,
-                contentDesc = "Download"
-            )
-        }
+
     }
 }

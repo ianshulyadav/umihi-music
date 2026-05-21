@@ -169,7 +169,7 @@ fun MiniPlayer(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(onPrimaryColor)
+                        .background(androidx.compose.ui.graphics.Color.White)
                         .clickable(
                             interactionSource = previousInteraction,
                             indication = null,
@@ -222,7 +222,7 @@ fun MiniPlayer(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(onPrimaryColor)
+                        .background(androidx.compose.ui.graphics.Color.White)
                         .clickable(
                             interactionSource = nextInteraction,
                             indication = null,

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,73 +46,62 @@ fun BottomToggleRow(
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainer
 ) {
     val isFavorite = isFavoriteProvider()
-    val rowCorners = 28.dp
     val buttonCorners = 24.dp
+    val buttonInactiveColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
 
-    Box(
+    Row(
         modifier = modifier
-            .height(56.dp)
-            .background(
-                color = containerColor,
-                shape = RoundedCornerShape(rowCorners)
-            )
+            .height(48.dp)
+            .fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(6.dp)
-                .clip(RoundedCornerShape(rowCorners))
-                .background(Color.Transparent),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            val commonModifier = Modifier.weight(1f)
+        val commonModifier = Modifier.weight(1f).fillMaxHeight()
 
-            ToggleSegmentButton(
-                modifier = commonModifier,
-                active = isShuffleEnabled,
-                activeColor = activeColorMain,
-                activeCornerRadius = buttonCorners,
-                activeContentColor = onActiveColorMain,
-                inactiveColor = Color.Transparent,
-                inactiveContentColor = inactiveContentColor,
-                iconSize = 26.dp,
-                onClick = onShuffleToggle,
-                imageVector = Icons.Rounded.Shuffle,
-                contentDesc = "Shuffle"
-            )
-            val repeatActive = repeatMode != Player.REPEAT_MODE_OFF
-            val repeatIcon = when (repeatMode) {
-                Player.REPEAT_MODE_ONE -> Icons.Rounded.RepeatOne
-                Player.REPEAT_MODE_ALL -> Icons.Rounded.Repeat
-                else -> Icons.Rounded.Repeat
-            }
-            ToggleSegmentButton(
-                modifier = commonModifier,
-                active = repeatActive,
-                activeColor = activeColorSecondary,
-                activeCornerRadius = buttonCorners,
-                activeContentColor = onActiveColorSecondary,
-                inactiveColor = Color.Transparent,
-                inactiveContentColor = inactiveContentColor,
-                iconSize = 26.dp,
-                onClick = onRepeatToggle,
-                imageVector = repeatIcon,
-                contentDesc = "Repeat"
-            )
-            ToggleSegmentButton(
-                modifier = commonModifier,
-                active = isFavorite,
-                activeColor = activeColorTertiary,
-                activeCornerRadius = buttonCorners,
-                activeContentColor = onActiveColorTertiary,
-                inactiveColor = Color.Transparent,
-                inactiveContentColor = inactiveContentColor,
-                iconSize = 26.dp,
-                onClick = onFavoriteToggle,
-                imageVector = if (isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                contentDesc = "Favorite"
-            )
+        ToggleSegmentButton(
+            modifier = commonModifier,
+            active = isShuffleEnabled,
+            activeColor = activeColorMain,
+            activeCornerRadius = buttonCorners,
+            activeContentColor = onActiveColorMain,
+            inactiveColor = buttonInactiveColor,
+            inactiveContentColor = inactiveContentColor,
+            iconSize = 26.dp,
+            onClick = onShuffleToggle,
+            imageVector = Icons.Rounded.Shuffle,
+            contentDesc = "Shuffle"
+        )
+        val repeatActive = repeatMode != Player.REPEAT_MODE_OFF
+        val repeatIcon = when (repeatMode) {
+            Player.REPEAT_MODE_ONE -> Icons.Rounded.RepeatOne
+            Player.REPEAT_MODE_ALL -> Icons.Rounded.Repeat
+            else -> Icons.Rounded.Repeat
         }
+        ToggleSegmentButton(
+            modifier = commonModifier,
+            active = repeatActive,
+            activeColor = activeColorSecondary,
+            activeCornerRadius = buttonCorners,
+            activeContentColor = onActiveColorSecondary,
+            inactiveColor = buttonInactiveColor,
+            inactiveContentColor = inactiveContentColor,
+            iconSize = 26.dp,
+            onClick = onRepeatToggle,
+            imageVector = repeatIcon,
+            contentDesc = "Repeat"
+        )
+        ToggleSegmentButton(
+            modifier = commonModifier,
+            active = isFavorite,
+            activeColor = activeColorTertiary,
+            activeCornerRadius = buttonCorners,
+            activeContentColor = onActiveColorTertiary,
+            inactiveColor = buttonInactiveColor,
+            inactiveContentColor = inactiveContentColor,
+            iconSize = 26.dp,
+            onClick = onFavoriteToggle,
+            imageVector = if (isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+            contentDesc = "Favorite"
+        )
     }
 }
