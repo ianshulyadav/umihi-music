@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
@@ -57,6 +59,8 @@ import ca.ilianokokoro.umihi.music.core.managers.PlayerManager
 import ca.ilianokokoro.umihi.music.models.Song
 import ca.ilianokokoro.umihi.music.ui.components.SquareImage
 import ca.ilianokokoro.umihi.music.ui.screens.player.PlayerSheetState
+import ca.ilianokokoro.umihi.music.ui.theme.LocalAlbumColorScheme
+import ca.ilianokokoro.umihi.music.ui.theme.LocalPixelPlayDarkTheme
 import ca.ilianokokoro.umihi.music.ui.screens.player.PlayerState
 import ca.ilianokokoro.umihi.music.ui.screens.player.PlayerViewModel
 import kotlinx.coroutines.launch
@@ -120,6 +124,18 @@ fun UnifiedPlayerSheet(
     val sheetCornerRadius = lerp(SheetCollapsedCornerRadius, SheetExpandedCornerRadius, expansionFraction)
     val sheetHorizontalPadding = lerp(SheetCollapsedHorizontalPadding, 0.dp, expansionFraction)
 
+    val albumColorSchemePair = LocalAlbumColorScheme.current
+    val isDarkTheme = LocalPixelPlayDarkTheme.current
+    val activeScheme = albumColorSchemePair?.let { if (isDarkTheme) it.dark else it.light }
+    val sheetBackgroundColor = activeScheme?.background ?: MaterialTheme.colorScheme.surface
+    val sheetSurfaceColor = activeScheme?.surface ?: MaterialTheme.colorScheme.surface
+    val sheetSurfaceVariantColor = activeScheme?.surfaceVariant ?: MaterialTheme.colorScheme.surfaceVariant
+    val miniContainerColor = activeScheme?.primaryContainer?.copy(alpha = 0.95f)
+        ?: MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.95f)
+    val miniOnContainerColor = activeScheme?.onPrimaryContainer ?: MaterialTheme.colorScheme.onPrimaryContainer
+    val miniPrimaryColor = activeScheme?.primary ?: MaterialTheme.colorScheme.primary
+    val miniOnPrimaryColor = activeScheme?.onPrimary ?: MaterialTheme.colorScheme.onPrimary
+
     val player = PlayerManager.currentController
     val isPlaying = player?.isPlaying == true
     val isLoading = player?.playbackState == androidx.media3.common.Player.STATE_BUFFERING
@@ -135,7 +151,15 @@ fun UnifiedPlayerSheet(
                 shape = RoundedCornerShape(topStart = sheetCornerRadius, topEnd = sheetCornerRadius)
                 clip = true
             }
-            .background(MaterialTheme.colorScheme.surface)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        miniContainerColor.copy(alpha = 0.4f),
+                        sheetSurfaceColor.copy(alpha = 0.7f),
+                        sheetBackgroundColor
+                    )
+                )
+            )
             .pointerInput(currentSong, collapsedOffsetY) {
                 detectVerticalDragGestures(
                     onDragStart = {
@@ -170,7 +194,7 @@ fun UnifiedPlayerSheet(
     ) {
         Surface(
             tonalElevation = 8.dp,
-            color = MaterialTheme.colorScheme.surface,
+            color = sheetSurfaceColor,
             modifier = Modifier.fillMaxSize()
         ) {
             Column(
@@ -191,7 +215,7 @@ fun UnifiedPlayerSheet(
                             .width(40.dp)
                             .height(4.dp)
                             .clip(RoundedCornerShape(2.dp))
-                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.24f))
+                            .background((activeScheme?.onSurface ?: MaterialTheme.colorScheme.onSurface).copy(alpha = 0.24f))
                     )
                 }
 
@@ -207,7 +231,9 @@ fun UnifiedPlayerSheet(
                         },
                         onSkipPrevious = { player?.seekToPrevious() },
                         onSkipNext = { player?.seekToNext() },
-                        onDismissPlaylist = playerViewModel::dismissPlaylist
+                        onDismissPlaylist = playerViewModel::dismissPlaylist,
+                        miniContainerColor = miniContainerColor,
+                        miniOnContainerColor = miniOnContainerColor
                     )
 
                     FullPlayerContent(
@@ -218,7 +244,10 @@ fun UnifiedPlayerSheet(
                         uiState = uiState,
                         alpha = fullAlpha,
                         onCollapse = playerViewModel::collapsePlayerSheet,
-                        playerViewModel = playerViewModel
+                        playerViewModel = playerViewModel,
+                        sheetSurfaceColor = sheetSurfaceColor,
+                        sheetSurfaceVariantColor = sheetSurfaceVariantColor,
+                        activeScheme = activeScheme
                     )
                 }
             }
@@ -236,7 +265,9 @@ private fun MiniPlayerHeader(
     onPlayPause: () -> Unit,
     onSkipPrevious: () -> Unit,
     onSkipNext: () -> Unit,
-    onDismissPlaylist: () -> Unit
+    onDismissPlaylist: () -> Unit,
+    miniContainerColor: androidx.compose.ui.graphics.Color,
+    miniOnContainerColor: androidx.compose.ui.graphics.Color
 ) {
     val density = LocalDensity.current
     val screenWidthPx = with(density) { LocalConfiguration.current.screenWidthDp.dp.toPx() }
@@ -259,10 +290,10 @@ private fun MiniPlayerHeader(
                 this.translationX = offsetAnimatable.value
             }
             .clip(RoundedCornerShape(28.dp))
-            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.95f))
+            .background(miniContainerColor)
             .miniPlayerDismissHorizontalGesture(true, dismissHandler)
             .clickable { onExpand() },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+        colors = CardDefaults.cardColors(containerColor = miniContainerColor)
     ) {
         Row(
             modifier = Modifier
@@ -287,7 +318,7 @@ private fun MiniPlayerHeader(
                             .fillMaxSize()
                             .padding(12.dp),
                         strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = miniOnContainerColor
                     )
                 }
             }
@@ -299,13 +330,13 @@ private fun MiniPlayerHeader(
                 Text(
                     text = currentSong.title,
                     style = MaterialTheme.typography.bodyLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = miniOnContainerColor,
                     maxLines = 1
                 )
                 Text(
                     text = currentSong.artist,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.72f),
+                    color = miniOnContainerColor.copy(alpha = 0.72f),
                     maxLines = 1
                 )
             }
@@ -314,21 +345,21 @@ private fun MiniPlayerHeader(
                 Icon(
                     imageVector = Icons.Rounded.SkipPrevious,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    tint = miniOnContainerColor
                 )
             }
             IconButton(onClick = onPlayPause, enabled = !isLoading) {
                 Icon(
                     imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    tint = miniOnContainerColor
                 )
             }
             IconButton(onClick = onSkipNext, enabled = !isLoading) {
                 Icon(
                     imageVector = Icons.Rounded.SkipNext,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    tint = miniOnContainerColor
                 )
             }
         }
@@ -344,7 +375,10 @@ private fun FullPlayerContent(
     uiState: PlayerState,
     alpha: Float,
     onCollapse: () -> Unit,
-    playerViewModel: PlayerViewModel
+    playerViewModel: PlayerViewModel,
+    sheetSurfaceColor: androidx.compose.ui.graphics.Color,
+    sheetSurfaceVariantColor: androidx.compose.ui.graphics.Color,
+    activeScheme: androidx.compose.material3.ColorScheme?
 ) {
     Column(
         modifier = Modifier
@@ -358,17 +392,27 @@ private fun FullPlayerContent(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            IconButton(
+                onClick = onCollapse,
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(sheetSurfaceColor, CircleShape)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.KeyboardArrowDown,
+                    contentDescription = "Collapse player",
+                    tint = activeScheme?.onSurface ?: MaterialTheme.colorScheme.onSurface
+                )
+            }
+
             Text(
                 text = "Now playing",
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface
+                color = activeScheme?.onSurface ?: MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f)
             )
-            IconButton(onClick = onCollapse) {
-                Icon(
-                    imageVector = Icons.Rounded.KeyboardArrowDown,
-                    contentDescription = "Collapse player"
-                )
-            }
+
+            Spacer(modifier = Modifier.size(44.dp))
         }
 
         Box(
@@ -376,7 +420,7 @@ private fun FullPlayerContent(
                 .fillMaxWidth()
                 .height(320.dp)
                 .clip(RoundedCornerShape(32.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+                .background(sheetSurfaceVariantColor),
             contentAlignment = Alignment.Center
         ) {
             SquareImage(
@@ -390,13 +434,13 @@ private fun FullPlayerContent(
             Text(
                 text = currentSong.title,
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface,
+                color = activeScheme?.onSurface ?: MaterialTheme.colorScheme.onSurface,
                 maxLines = 2
             )
             Text(
                 text = currentSong.artist,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = activeScheme?.onSurfaceVariant ?: MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
