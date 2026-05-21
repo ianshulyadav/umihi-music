@@ -206,29 +206,9 @@ fun UnifiedPlayerSheet(
                 modifier = Modifier
                     .fillMaxSize()
                     .navigationBarsPadding()
-                    .padding(bottom = bottomPadding, top = 12.dp)
+                    .padding(bottom = bottomPadding, top = if (isExpanded) 12.dp else 0.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .height(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .width(40.dp)
-                            .height(4.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background((activeScheme?.onSurface ?: MaterialTheme.colorScheme.onSurface).copy(alpha = 0.24f))
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp)
-                ) {
+                if (!isExpanded) {
                     MiniPlayerHeader(
                         currentSong = currentSong,
                         isPlaying = isPlaying,
@@ -244,21 +224,21 @@ fun UnifiedPlayerSheet(
                         miniContainerColor = miniContainerColor,
                         miniOnContainerColor = miniOnContainerColor
                     )
-
-                    FullPlayerContent(
-                        currentSong = currentSong,
-                        isPlaying = isPlaying,
-                        isLoading = isLoading,
-                        progress = uiState.playbackProgress,
-                        uiState = uiState,
-                        alpha = fullAlpha,
-                        onCollapse = playerViewModel::collapsePlayerSheet,
-                        playerViewModel = playerViewModel,
-                        sheetSurfaceColor = sheetSurfaceColor,
-                        sheetSurfaceVariantColor = sheetSurfaceVariantColor,
-                        activeScheme = activeScheme
-                    )
                 }
+
+                FullPlayerContent(
+                    currentSong = currentSong,
+                    isPlaying = isPlaying,
+                    isLoading = isLoading,
+                    progress = uiState.playbackProgress,
+                    uiState = uiState,
+                    alpha = fullAlpha,
+                    onCollapse = playerViewModel::collapsePlayerSheet,
+                    playerViewModel = playerViewModel,
+                    sheetSurfaceColor = sheetSurfaceColor,
+                    sheetSurfaceVariantColor = sheetSurfaceVariantColor,
+                    activeScheme = activeScheme
+                )
             }
         }
     }

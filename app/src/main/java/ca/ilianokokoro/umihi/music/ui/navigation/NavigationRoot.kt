@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
@@ -75,6 +76,8 @@ fun NavigationRoot(modifier: Modifier = Modifier) {
     val playerViewModel: PlayerViewModel = viewModel(
         factory = PlayerViewModel.Factory(application = app)
     )
+    val playerUiState by playerViewModel.uiState.collectAsStateWithLifecycle()
+    val isPlayerSheetExpanded = playerUiState.sheetState == ca.ilianokokoro.umihi.music.ui.screens.player.PlayerSheetState.EXPANDED
 
     SharedTransitionLayout {
         Scaffold(
@@ -112,7 +115,7 @@ fun NavigationRoot(modifier: Modifier = Modifier) {
         bottomBar = {
             Column {
                 AnimatedVisibility(
-                    visible = screenConfig.showBottomBar,
+                    visible = screenConfig.showBottomBar && !isPlayerSheetExpanded,
                     enter = slideInVertically { it } + fadeIn(),
                     exit = slideOutVertically { it } + fadeOut()
                 ) {
@@ -224,7 +227,7 @@ fun NavigationRoot(modifier: Modifier = Modifier) {
             UnifiedPlayerSheet(
                 playerViewModel = playerViewModel,
                 showMiniPlayer = screenConfig.showMiniPlayer,
-                bottomBarVisible = screenConfig.showBottomBar,
+                bottomBarVisible = screenConfig.showBottomBar && !isPlayerSheetExpanded,
                 modifier = Modifier.fillMaxWidth()
             )
         }
