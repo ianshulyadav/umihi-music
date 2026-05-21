@@ -136,13 +136,19 @@ fun LyricsSheet(
         val insetsController = remember(window, view) {
             androidx.core.view.WindowCompat.getInsetsController(window, view)
         }
-        LaunchedEffect(isImmersiveActive, settings.useImmersiveLyrics) {
-            if (settings.useImmersiveLyrics && isImmersiveActive) {
-                insetsController.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
-                insetsController.systemBarsBehavior =
-                    androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            } else {
-                insetsController.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+        LaunchedEffect(isImmersiveActive, settings.useImmersiveLyrics, settings.useImmersiveLyricsStatusBar) {
+            when {
+                settings.useImmersiveLyrics && isImmersiveActive && settings.useImmersiveLyricsStatusBar -> {
+                    insetsController.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+                    insetsController.systemBarsBehavior =
+                        androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                }
+                settings.useImmersiveLyricsStatusBar -> {
+                    insetsController.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+                }
+                else -> {
+                    insetsController.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+                }
             }
         }
 
@@ -499,14 +505,18 @@ fun LyricsSheet(
                 )
                 .padding(horizontal = 16.dp, vertical = 12.dp)
                 .fillMaxWidth()
-                .shadow(elevation = 8.dp, shape = RoundedCornerShape(32.dp))
+                .shadow(elevation = 8.dp, shape = RoundedCornerShape(36.dp))
                 .background(
                     color = Color.White,
-                    shape = RoundedCornerShape(32.dp)
+                    shape = RoundedCornerShape(36.dp)
                 )
-                .border(BorderStroke(1.dp, Color.Black.copy(alpha = 0.08f)), RoundedCornerShape(32.dp))
-                .padding(horizontal = 12.dp, vertical = 10.dp)
+                .border(BorderStroke(1.5.dp, Color.Black.copy(alpha = 0.08f)), RoundedCornerShape(36.dp))
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
+            val miniPlayerTextColor = Color(0xFF1E1E1E)
+            val miniPlayerSubtextColor = Color(0xFF666666)
+            val miniPlayerIconColor = Color(0xFF1E1E1E)
+
             if (settings.lyricsMiniPlayerAlignment == "LEFT") {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -531,7 +541,7 @@ fun LyricsSheet(
                         model = currentSong?.thumbnailPath ?: currentSong?.thumbnailHref,
                         contentDescription = "Cover Art CD",
                         modifier = Modifier
-                            .size(48.dp)
+                            .size(60.dp)
                             .graphicsLayer {
                                 rotationZ = currentRotation.value % 360f
                             }
@@ -544,7 +554,7 @@ fun LyricsSheet(
                         contentScale = ContentScale.Crop
                     )
 
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
 
                     // Title/Artist details column (start-aligned)
                     Column(
@@ -553,30 +563,31 @@ fun LyricsSheet(
                     ) {
                         Text(
                             text = currentSong?.title ?: "Unknown Title",
-                            style = MaterialTheme.typography.bodyMedium.copy(
+                            style = MaterialTheme.typography.bodyLarge.copy(
                                 fontFamily = GoogleSansRounded,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.ExtraBold
                             ),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            color = Color.Black
+                            color = miniPlayerTextColor
                         )
                         Text(
                             text = currentSong?.artist ?: "Unknown Artist",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontFamily = GoogleSansRounded
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontFamily = GoogleSansRounded,
+                                fontWeight = FontWeight.SemiBold
                             ),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            color = Color.Black.copy(alpha = 0.6f)
+                            color = miniPlayerSubtextColor
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
 
                     // Equalizer
                     PlayingEqIcon(
-                        modifier = Modifier.size(width = 14.dp, height = 12.dp),
+                        modifier = Modifier.size(width = 16.dp, height = 14.dp),
                         color = accentColor,
                         isPlaying = uiState.isPlaying
                     )
@@ -591,7 +602,7 @@ fun LyricsSheet(
                         Icon(
                             imageVector = Icons.Filled.MoreVert,
                             contentDescription = "Customization Settings",
-                            tint = Color.Black
+                            tint = miniPlayerIconColor
                         )
                     }
 
@@ -603,7 +614,7 @@ fun LyricsSheet(
                         Icon(
                             imageVector = Icons.Rounded.KeyboardArrowDown,
                             contentDescription = "Minimize Lyrics",
-                            tint = Color.Black
+                            tint = miniPlayerIconColor
                         )
                     }
                 }
@@ -621,7 +632,7 @@ fun LyricsSheet(
                         Icon(
                             imageVector = Icons.Rounded.KeyboardArrowDown,
                             contentDescription = "Minimize Lyrics",
-                            tint = Color.Black
+                            tint = miniPlayerIconColor
                         )
                     }
 
@@ -651,7 +662,7 @@ fun LyricsSheet(
                             model = currentSong?.thumbnailPath ?: currentSong?.thumbnailHref,
                             contentDescription = "Cover Art CD",
                             modifier = Modifier
-                                .size(48.dp)
+                                .size(60.dp)
                                 .graphicsLayer {
                                     rotationZ = currentRotation.value % 360f
                                 }
@@ -664,7 +675,7 @@ fun LyricsSheet(
                             contentScale = ContentScale.Crop
                         )
 
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(16.dp))
 
                         Column(
                             modifier = Modifier.weight(1f, fill = false),
@@ -672,29 +683,30 @@ fun LyricsSheet(
                         ) {
                             Text(
                                 text = currentSong?.title ?: "Unknown Title",
-                                style = MaterialTheme.typography.bodyMedium.copy(
+                                style = MaterialTheme.typography.bodyLarge.copy(
                                     fontFamily = GoogleSansRounded,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.ExtraBold
                                 ),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                color = Color.Black
+                                color = miniPlayerTextColor
                             )
                             Text(
                                 text = currentSong?.artist ?: "Unknown Artist",
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontFamily = GoogleSansRounded
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontFamily = GoogleSansRounded,
+                                    fontWeight = FontWeight.SemiBold
                                 ),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                color = Color.Black.copy(alpha = 0.6f)
+                                color = miniPlayerSubtextColor
                             )
                         }
 
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
 
                         PlayingEqIcon(
-                            modifier = Modifier.size(width = 14.dp, height = 12.dp),
+                            modifier = Modifier.size(width = 16.dp, height = 14.dp),
                             color = accentColor,
                             isPlaying = uiState.isPlaying
                         )
@@ -708,7 +720,7 @@ fun LyricsSheet(
                         Icon(
                             imageVector = Icons.Filled.MoreVert,
                             contentDescription = "Customization Settings",
-                            tint = Color.Black
+                            tint = miniPlayerIconColor
                         )
                     }
                 }

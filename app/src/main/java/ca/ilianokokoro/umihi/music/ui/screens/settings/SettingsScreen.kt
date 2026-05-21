@@ -25,6 +25,8 @@ import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.rounded.Lyrics
+import androidx.compose.material.icons.automirrored.outlined.QueueMusic
+import androidx.compose.material.icons.outlined.DownloadForOffline
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
@@ -226,7 +228,7 @@ fun SettingsScreen(
                         subtitle = stringResource(R.string.use_animated_lyrics_desc),
                         leadingIcon = androidx.compose.material.icons.Icons.Rounded.Lyrics,
                         value = uiState.screenState.settings.useAnimatedLyrics,
-                        shape = shapeFor(0, 4),
+                        shape = shapeFor(0, 5),
                         onToggle = { settingsViewModel.updateUseAnimatedLyricsSetting(it) }
                     )
                     BooleanSettingItem(
@@ -234,7 +236,7 @@ fun SettingsScreen(
                         subtitle = stringResource(R.string.animated_lyrics_blur_desc),
                         leadingIcon = androidx.compose.material.icons.Icons.Rounded.Lyrics,
                         value = uiState.screenState.settings.animatedLyricsBlurEnabled,
-                        shape = shapeFor(1, 4),
+                        shape = shapeFor(1, 5),
                         onToggle = { settingsViewModel.updateAnimatedLyricsBlurEnabledSetting(it) }
                     )
                     BooleanSettingItem(
@@ -242,18 +244,46 @@ fun SettingsScreen(
                         subtitle = stringResource(R.string.immersive_lyrics_desc),
                         leadingIcon = androidx.compose.material.icons.Icons.Rounded.Lyrics,
                         value = uiState.screenState.settings.useImmersiveLyrics,
-                        shape = shapeFor(2, 4),
+                        shape = shapeFor(2, 5),
                         onToggle = { settingsViewModel.updateUseImmersiveLyricsSetting(it) }
+                    )
+                    BooleanSettingItem(
+                        title = stringResource(R.string.immersive_lyrics_status_bar),
+                        subtitle = stringResource(R.string.immersive_lyrics_status_bar_desc),
+                        leadingIcon = androidx.compose.material.icons.Icons.Rounded.Lyrics,
+                        value = uiState.screenState.settings.useImmersiveLyricsStatusBar,
+                        shape = shapeFor(3, 5),
+                        onToggle = { settingsViewModel.updateUseImmersiveLyricsStatusBarSetting(it) }
                     )
                     SettingsItem(
                         title = stringResource(R.string.lyrics_autohide_delay),
                         subtitle = stringResource(R.string.lyrics_autohide_delay_desc) + ": " + uiState.screenState.settings.lyricsAutoHideDelay + "s",
                         leadingIcon = Icons.Outlined.Timer,
-                        shape = shapeFor(3, 4),
+                        shape = shapeFor(4, 5),
                         onClick = { showAutoHideDelayDialog = true }
                     )
                 }
 
+                SettingsSection(
+                    title = stringResource(R.string.queue_settings_title),
+                ) {
+                    BooleanSettingItem(
+                        title = stringResource(R.string.auto_queue_title),
+                        subtitle = stringResource(R.string.auto_queue_desc),
+                        leadingIcon = Icons.AutoMirrored.Outlined.QueueMusic,
+                        value = uiState.screenState.settings.autoQueueEnabled,
+                        shape = shapeFor(0, 2),
+                        onToggle = { settingsViewModel.updateAutoQueueEnabled(it) }
+                    )
+                    BooleanSettingItem(
+                        title = stringResource(R.string.preload_queue_title),
+                        subtitle = stringResource(R.string.preload_queue_desc),
+                        leadingIcon = Icons.Outlined.DownloadForOffline,
+                        value = uiState.screenState.settings.preloadQueueEnabled,
+                        shape = shapeFor(1, 2),
+                        onToggle = { settingsViewModel.updatePreloadQueueEnabled(it) }
+                    )
+                }
 
                 SettingsSection(
                     title = stringResource(R.string.data_and_storage),

@@ -18,4 +18,10 @@ class SongDataSource {
             )
         )
     }
+
+    fun getRelatedSongs(videoId: String): List<Song> {
+        return YoutubeHelper.extractRelatedSongs(
+            YoutubeRequestHelper.nextUp(videoId)
+        )
+    }
 }

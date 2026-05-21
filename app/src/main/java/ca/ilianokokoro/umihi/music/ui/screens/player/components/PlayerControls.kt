@@ -24,8 +24,11 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
+import androidx.compose.material.icons.rounded.CloudDownload
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import ca.ilianokokoro.umihi.music.core.helpers.ComposeHelper
 import ca.ilianokokoro.umihi.music.core.managers.PlayerManager
@@ -39,6 +42,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.rounded.Cast
 import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.ui.graphics.graphicsLayer
+import ca.ilianokokoro.umihi.music.ui.components.ToggleSegmentButton
 
 @Composable
 fun PlayerControls(
@@ -67,6 +71,9 @@ fun PlayerControls(
     val player by PlayerManager.controllerState.collectAsState()
     val repeatMode = ComposeHelper.rememberRepeatMode(player)
     val isShuffleEnabled = player?.shuffleModeEnabled ?: false
+
+    var isSyncActive by remember { mutableStateOf(false) }
+    var isDownloadActive by remember { mutableStateOf(false) }
 
     // Color theme logic
     val isDark = ca.ilianokokoro.umihi.music.ui.theme.LocalPixelPlayDarkTheme.current
@@ -332,6 +339,48 @@ fun PlayerControls(
                     }
                 },
                 onFavoriteToggle = onFavoriteToggle
+            )
+        }
+
+        // Sync / Download Toggle Buttons
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .graphicsLayer {
+                    alpha = secondaryAlpha
+                    translationY = secondaryOffsetY
+                },
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ToggleSegmentButton(
+                modifier = Modifier
+                    .weight(1f)
+                    .size(height = 44.dp, width = 1.dp),
+                active = isSyncActive,
+                activeColor = MaterialTheme.colorScheme.primaryContainer,
+                inactiveColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                activeContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                activeCornerRadius = 16.dp,
+                onClick = { isSyncActive = !isSyncActive },
+                imageVector = Icons.Rounded.Refresh,
+                contentDesc = "Sync"
+            )
+            ToggleSegmentButton(
+                modifier = Modifier
+                    .weight(1f)
+                    .size(height = 44.dp, width = 1.dp),
+                active = isDownloadActive,
+                activeColor = MaterialTheme.colorScheme.primaryContainer,
+                inactiveColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                activeContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                activeCornerRadius = 16.dp,
+                onClick = { isDownloadActive = !isDownloadActive },
+                imageVector = Icons.Rounded.CloudDownload,
+                contentDesc = "Download"
             )
         }
     }

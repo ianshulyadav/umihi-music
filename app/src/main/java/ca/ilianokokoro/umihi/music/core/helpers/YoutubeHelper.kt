@@ -214,6 +214,74 @@ object YoutubeHelper {
     }
 
 
+    /**
+     * Parses related songs from the YouTube Music "next" endpoint.
+     * Walks: singleColumnWatchNextResults → playlist → playlist → contents → autoplay → sets
+     * Falls back to searching the tabbedRenderer for musicQueueRenderer items.
+     */
+    fun extractRelatedSongs(jsonString: String): List<Song> {
+        return try {
+            val root = Json.parseToJsonElement(jsonString).jsonObject
+
+            // Primary path: singleColumnWatchNextResults
+            val autoplayItems = root["contents"]
+                ?.jsonObject?.get("singleColumnWatchNextResults")
+                ?.jsonObject?.get("playlist")
+                ?.jsonObject?.get("playlist")
+                ?.jsonObject?.get("contents")
+                ?.jsonArray
+
+            if (autoplayItems != null && autoplayItems.size > 1) {
+                // skip index 0 (current song), take up to 10 next
+                return autoplayItems.drop(1).take(10).mapNotNull { item ->
+                    val renderer = item.jsonObject["playlistPanelVideoRenderer"]?.jsonObject
+                        ?: return@mapNotNull null
+                    val videoId = renderer["videoId"]?.jsonPrimitive?.contentOrNull
+                        ?: return@mapNotNull null
+                    val title = renderer["title"]?.jsonObject?.get("runs")
+                        ?.jsonArray?.firstOrNull()?.jsonObject?.get("text")?.jsonPrimitive?.contentOrNull ?: ""
+                    val artist = renderer["longBylineText"]?.jsonObject?.get("runs")
+                        ?.jsonArray?.firstOrNull()?.jsonObject?.get("text")?.jsonPrimitive?.contentOrNull ?: ""
+                    val thumbnail = renderer["thumbnail"]?.jsonObject?.get("thumbnails")
+                        ?.jsonArray?.last()?.jsonObject?.get("url")?.jsonPrimitive?.contentOrNull ?: ""
+                    Song(youtubeId = videoId, title = title, artist = artist, thumbnailHref = thumbnail)
+                }
+            }
+
+            // Fallback: tabbedRenderer → musicQueueRenderer
+            val queueItems = root["contents"]
+                ?.jsonObject?.get("singleColumnWatchNextResults")
+                ?.jsonObject?.get("tabbedRenderer")
+                ?.jsonObject?.get("watchNextTabbedResultsRenderer")
+                ?.jsonObject?.get("tabs")
+                ?.jsonArray?.firstOrNull()
+                ?.jsonObject?.get("tabRenderer")
+                ?.jsonObject?.get("content")
+                ?.jsonObject?.get("musicQueueRenderer")
+                ?.jsonObject?.get("content")
+                ?.jsonObject?.get("playlistPanelRenderer")
+                ?.jsonObject?.get("contents")
+                ?.jsonArray
+
+            queueItems?.drop(1)?.take(10)?.mapNotNull { item ->
+                val renderer = item.jsonObject["playlistPanelVideoRenderer"]?.jsonObject
+                    ?: return@mapNotNull null
+                val videoId = renderer["videoId"]?.jsonPrimitive?.contentOrNull
+                    ?: return@mapNotNull null
+                val title = renderer["title"]?.jsonObject?.get("runs")
+                    ?.jsonArray?.firstOrNull()?.jsonObject?.get("text")?.jsonPrimitive?.contentOrNull ?: ""
+                val artist = renderer["longBylineText"]?.jsonObject?.get("runs")
+                    ?.jsonArray?.firstOrNull()?.jsonObject?.get("text")?.jsonPrimitive?.contentOrNull ?: ""
+                val thumbnail = renderer["thumbnail"]?.jsonObject?.get("thumbnails")
+                    ?.jsonArray?.last()?.jsonObject?.get("url")?.jsonPrimitive?.contentOrNull ?: ""
+                Song(youtubeId = videoId, title = title, artist = artist, thumbnailHref = thumbnail)
+            } ?: emptyList()
+        } catch (e: Exception) {
+            printe("extractRelatedSongs failed: ${e.message}")
+            emptyList()
+        }
+    }
+
     fun extractSongInfo(jsonString: String): Song {
         val json = Json.parseToJsonElement(jsonString).jsonObject
         val details = json.jsonObject["videoDetails"]?.jsonObject

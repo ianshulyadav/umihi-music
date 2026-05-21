@@ -18,5 +18,8 @@ data class UmihiSettings(
     val playerThemePreference: String = "ALBUM_ART",
     val colorPalettePreference: String = "SAGE",
     val lyricsMiniPlayerPosition: String = "TOP",
-    val lyricsMiniPlayerAlignment: String = "LEFT"
+    val lyricsMiniPlayerAlignment: String = "LEFT",
+    val useImmersiveLyricsStatusBar: Boolean = true,
+    val autoQueueEnabled: Boolean = true,
+    val preloadQueueEnabled: Boolean = true,
 )

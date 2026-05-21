@@ -77,7 +77,8 @@ class PlayerViewModel(application: Application) :
                 _uiState.update {
                     it.copy(
                         useAnimatedLyrics = settings.useAnimatedLyrics,
-                        animatedLyricsBlurEnabled = settings.animatedLyricsBlurEnabled
+                        animatedLyricsBlurEnabled = settings.animatedLyricsBlurEnabled,
+                        autoQueueEnabled = settings.autoQueueEnabled
                     )
                 }
             }

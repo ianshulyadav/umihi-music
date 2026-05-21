@@ -9,20 +9,6 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import ca.ilianokokoro.umihi.music.core.Constants
-import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.COOKIES
-import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.DATA_SYNC_ID
-import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.KEEP_SCREEN_ON
-import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.SHOW_PODCAST_PLAYLIST
-import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.UPDATE_CHANNEL
-import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.USE_AUDIO_OFFLOAD
-import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.USE_SPECIAL_LANGUAGE
-import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.USE_ANIMATED_LYRICS
-import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.ANIMATED_LYRICS_BLUR_ENABLED
-import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.USE_IMMERSIVE_LYRICS
-import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.LYRICS_AUTOHIDE_DELAY
-import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.SHOW_PLAYER_FILE_INFO
-import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.PLAYER_THEME_PREFERENCE
-import ca.ilianokokoro.umihi.music.data.repositories.DatastoreRepository.PreferenceKeys.COLOR_PALETTE_PREFERENCE
 import ca.ilianokokoro.umihi.music.models.Cookies
 import ca.ilianokokoro.umihi.music.models.UmihiSettings
 import kotlinx.coroutines.flow.first
@@ -50,6 +36,10 @@ class DatastoreRepository(private val context: Context) {
         val COLOR_PALETTE_PREFERENCE = stringPreferencesKey("color_palette_preference")
         val LYRICS_MINIPLAYER_POSITION = stringPreferencesKey("lyrics_miniplayer_position")
         val LYRICS_MINIPLAYER_ALIGNMENT = stringPreferencesKey("lyrics_miniplayer_alignment")
+        val USE_IMMERSIVE_LYRICS_STATUS_BAR = booleanPreferencesKey("use_immersive_lyrics_status_bar")
+        val AUTO_QUEUE_ENABLED = booleanPreferencesKey("auto_queue_enabled")
+        val PRELOAD_QUEUE_ENABLED = booleanPreferencesKey("preload_queue_enabled")
+        val PERSISTENT_QUEUE = stringPreferencesKey("persistent_queue")
     }
 
     suspend fun <T> save(key: Preferences.Key<T>, value: T) {
@@ -59,21 +49,24 @@ class DatastoreRepository(private val context: Context) {
     }
 
     val settings = context.dataStore.data.map {
-        val updateChannel = it[UPDATE_CHANNEL]?.let { value -> UpdateChannel.valueOf(value) }
+        val updateChannel = it[PreferenceKeys.UPDATE_CHANNEL]?.let { value -> UpdateChannel.valueOf(value) }
             ?: UpdateChannel.Stable
-        val showPodcastPlaylist = it[SHOW_PODCAST_PLAYLIST] ?: true
-        val useSpecialLanguage = it[USE_SPECIAL_LANGUAGE] ?: false
-        val useAudioOffload = it[USE_AUDIO_OFFLOAD] ?: false
-        val keepScreenOn = it[KEEP_SCREEN_ON] ?: false
-        val useAnimatedLyrics = it[USE_ANIMATED_LYRICS] ?: true
-        val animatedLyricsBlurEnabled = it[ANIMATED_LYRICS_BLUR_ENABLED] ?: true
-        val useImmersiveLyrics = it[USE_IMMERSIVE_LYRICS] ?: true
-        val lyricsAutoHideDelay = it[LYRICS_AUTOHIDE_DELAY] ?: 4
-        val showPlayerFileInfo = it[SHOW_PLAYER_FILE_INFO] ?: false
-        val playerThemePreference = it[PLAYER_THEME_PREFERENCE] ?: "ALBUM_ART"
-        val colorPalettePreference = it[COLOR_PALETTE_PREFERENCE] ?: "SAGE"
-        val lyricsMiniPlayerPosition = it[LYRICS_MINIPLAYER_POSITION] ?: "TOP"
-        val lyricsMiniPlayerAlignment = it[LYRICS_MINIPLAYER_ALIGNMENT] ?: "LEFT"
+        val showPodcastPlaylist = it[PreferenceKeys.SHOW_PODCAST_PLAYLIST] ?: true
+        val useSpecialLanguage = it[PreferenceKeys.USE_SPECIAL_LANGUAGE] ?: false
+        val useAudioOffload = it[PreferenceKeys.USE_AUDIO_OFFLOAD] ?: false
+        val keepScreenOn = it[PreferenceKeys.KEEP_SCREEN_ON] ?: false
+        val useAnimatedLyrics = it[PreferenceKeys.USE_ANIMATED_LYRICS] ?: true
+        val animatedLyricsBlurEnabled = it[PreferenceKeys.ANIMATED_LYRICS_BLUR_ENABLED] ?: true
+        val useImmersiveLyrics = it[PreferenceKeys.USE_IMMERSIVE_LYRICS] ?: true
+        val lyricsAutoHideDelay = it[PreferenceKeys.LYRICS_AUTOHIDE_DELAY] ?: 4
+        val showPlayerFileInfo = it[PreferenceKeys.SHOW_PLAYER_FILE_INFO] ?: false
+        val playerThemePreference = it[PreferenceKeys.PLAYER_THEME_PREFERENCE] ?: "ALBUM_ART"
+        val colorPalettePreference = it[PreferenceKeys.COLOR_PALETTE_PREFERENCE] ?: "SAGE"
+        val lyricsMiniPlayerPosition = it[PreferenceKeys.LYRICS_MINIPLAYER_POSITION] ?: "TOP"
+        val lyricsMiniPlayerAlignment = it[PreferenceKeys.LYRICS_MINIPLAYER_ALIGNMENT] ?: "LEFT"
+        val useImmersiveLyricsStatusBar = it[PreferenceKeys.USE_IMMERSIVE_LYRICS_STATUS_BAR] ?: true
+        val autoQueueEnabled = it[PreferenceKeys.AUTO_QUEUE_ENABLED] ?: true
+        val preloadQueueEnabled = it[PreferenceKeys.PRELOAD_QUEUE_ENABLED] ?: true
         val cookies = cookies.first()
         val dataSyncId = dataSyncId.first()
 
@@ -93,7 +86,10 @@ class DatastoreRepository(private val context: Context) {
             playerThemePreference = playerThemePreference,
             colorPalettePreference = colorPalettePreference,
             lyricsMiniPlayerPosition = lyricsMiniPlayerPosition,
-            lyricsMiniPlayerAlignment = lyricsMiniPlayerAlignment
+            lyricsMiniPlayerAlignment = lyricsMiniPlayerAlignment,
+            useImmersiveLyricsStatusBar = useImmersiveLyricsStatusBar,
+            autoQueueEnabled = autoQueueEnabled,
+            preloadQueueEnabled = preloadQueueEnabled
         )
     }
 
@@ -104,22 +100,32 @@ class DatastoreRepository(private val context: Context) {
     }
 
     val cookies = context.dataStore.data.map {
-        Cookies(it[COOKIES] ?: "")
+        Cookies(it[PreferenceKeys.COOKIES] ?: "")
     }
 
     val dataSyncId = context.dataStore.data.map {
-        it[DATA_SYNC_ID] ?: ""
+        it[PreferenceKeys.DATA_SYNC_ID] ?: ""
     }
 
     suspend fun saveCookies(cookies: Cookies) {
         context.dataStore.edit {
-            it[COOKIES] = cookies.toRawCookie()
+            it[PreferenceKeys.COOKIES] = cookies.toRawCookie()
         }
     }
 
     suspend fun saveDataSyncId(newId: String) {
         context.dataStore.edit {
-            it[DATA_SYNC_ID] = newId
+            it[PreferenceKeys.DATA_SYNC_ID] = newId
+        }
+    }
+
+    suspend fun getPersistentQueue(): String {
+        return context.dataStore.data.first()[PreferenceKeys.PERSISTENT_QUEUE] ?: ""
+    }
+
+    suspend fun savePersistentQueue(json: String) {
+        context.dataStore.edit {
+            it[PreferenceKeys.PERSISTENT_QUEUE] = json
         }
     }
 

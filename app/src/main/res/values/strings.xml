@@ -123,4 +123,12 @@
     <string name="color_palette_purple">Classic Purple</string>
     <string name="color_palette_blue">Ocean Blue</string>
     <string name="color_palette_orange">Sunset Orange</string>
+    <string name="immersive_lyrics_status_bar">Immersive Lyrics Status Bar</string>
+    <string name="immersive_lyrics_status_bar_desc">Hide the status bar during immersive lyrics mode for a fully immersive experience</string>
+    <string name="queue_settings_title">Queue</string>
+    <string name="auto_queue_title">Auto-Queue Radio Mode</string>
+    <string name="auto_queue_desc">Automatically add similar songs when the queue is almost empty</string>
+    <string name="preload_queue_title">Preload Next Songs</string>
+    <string name="preload_queue_desc">Pre-cache stream URLs and album art for upcoming songs to ensure smooth playback on weak connections</string>
+    <string name="radio_mode_active">Radio</string>
 </resources>

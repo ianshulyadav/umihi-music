@@ -159,6 +159,27 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         )
     }
 
+    fun updateUseImmersiveLyricsStatusBarSetting(value: Boolean) {
+        updateSetting(
+            DatastoreRepository.PreferenceKeys.USE_IMMERSIVE_LYRICS_STATUS_BAR,
+            value
+        )
+    }
+
+    fun updateAutoQueueEnabled(value: Boolean) {
+        updateSetting(
+            DatastoreRepository.PreferenceKeys.AUTO_QUEUE_ENABLED,
+            value
+        )
+    }
+
+    fun updatePreloadQueueEnabled(value: Boolean) {
+        updateSetting(
+            DatastoreRepository.PreferenceKeys.PRELOAD_QUEUE_ENABLED,
+            value
+        )
+    }
+
     fun updateLyricsAutoHideDelaySetting(value: Int) {
         updateSetting(
             DatastoreRepository.PreferenceKeys.LYRICS_AUTOHIDE_DELAY,

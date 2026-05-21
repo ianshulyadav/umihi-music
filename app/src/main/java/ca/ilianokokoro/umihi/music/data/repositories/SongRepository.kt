@@ -32,4 +32,15 @@ class SongRepository {
             }
         }.flowOn(Dispatchers.IO)
     }
+
+    fun getRelatedSongs(videoId: String): Flow<ApiResult<List<Song>>> {
+        return flow {
+            try {
+                emit(ApiResult.Loading)
+                emit(ApiResult.Success(songDataSource.getRelatedSongs(videoId)))
+            } catch (e: Exception) {
+                emit(ApiResult.Error(e))
+            }
+        }.flowOn(Dispatchers.IO)
+    }
 }

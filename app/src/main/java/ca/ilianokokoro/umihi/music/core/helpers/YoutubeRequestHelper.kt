@@ -44,6 +44,14 @@ object YoutubeRequestHelper {
         )
     }
 
+    fun nextUp(videoId: String): String {
+        return requestWithContext(
+            url = Constants.YoutubeApi.Next.URL,
+            idName = "videoId",
+            id = videoId
+        )
+    }
+
     fun like(videoId: String, settings: UmihiSettings): String {
         return requestWithTarget(
             url = "https://www.youtube.com/youtubei/v1/like/like",

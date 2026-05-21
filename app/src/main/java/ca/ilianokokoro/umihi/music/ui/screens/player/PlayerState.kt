@@ -19,7 +19,9 @@ data class PlayerState(
     val isFavorite: Boolean = false,
     val audioFormat: String? = null,
     val audioSize: String? = null,
-    val audioBitrate: String? = null
+    val audioBitrate: String? = null,
+    val autoQueueEnabled: Boolean = true,
+    val isAutoQueuing: Boolean = false,
 )
 
 data class PlaybackProgress(

@@ -8,6 +8,7 @@ package ca.ilianokokoro.umihi.music.ui.screens.player
 
 import android.app.Application
 import android.content.res.Configuration
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -44,7 +45,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
@@ -70,6 +73,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Cast
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+
+// Animation configuration for collapse/expand transitions
+object PlayerAnimationConfig {
+    const val COLLAPSE_EXPAND_DURATION_MS = 400
+    const val STAGGER_DELAY_BASE_MS = 0
+}
 
 @Composable
 fun PlayerScreen(
@@ -121,19 +132,19 @@ fun PlayerScreen(
 
     val bgFadeProgress by animateFloatAsState(
         targetValue = if (showContent.value) 1f else 0f,
-        animationSpec = tween(durationMillis = 400),
+        animationSpec = tween(durationMillis = PlayerAnimationConfig.COLLAPSE_EXPAND_DURATION_MS),
         label = "bgFadeProgress"
     )
 
     val contentAlpha by animateFloatAsState(
         targetValue = if (showContent.value) 1f else 0f,
-        animationSpec = tween(durationMillis = 350, delayMillis = 150),
+        animationSpec = tween(durationMillis = PlayerAnimationConfig.COLLAPSE_EXPAND_DURATION_MS, delayMillis = 50),
         label = "contentAlpha"
     )
     val contentOffsetY by animateFloatAsState(
         targetValue = if (showContent.value) 0f else 40f,
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
+            dampingRatio = Spring.DampingRatioNoBouncy,
             stiffness = Spring.StiffnessLow
         ),
         label = "contentOffsetY"
@@ -141,23 +152,23 @@ fun PlayerScreen(
 
     val progressAlpha by animateFloatAsState(
         targetValue = if (showContent.value) 1f else 0f,
-        animationSpec = tween(durationMillis = 300, delayMillis = 250),
+        animationSpec = tween(durationMillis = PlayerAnimationConfig.COLLAPSE_EXPAND_DURATION_MS, delayMillis = 100),
         label = "progressAlpha"
     )
     val progressOffsetY by animateFloatAsState(
         targetValue = if (showContent.value) 0f else 30f,
-        animationSpec = tween(durationMillis = 350, delayMillis = 200),
+        animationSpec = tween(durationMillis = PlayerAnimationConfig.COLLAPSE_EXPAND_DURATION_MS, delayMillis = 50),
         label = "progressOffsetY"
     )
 
     val controlsAlpha by animateFloatAsState(
         targetValue = if (showContent.value) 1f else 0f,
-        animationSpec = tween(durationMillis = 300, delayMillis = 350),
+        animationSpec = tween(durationMillis = PlayerAnimationConfig.COLLAPSE_EXPAND_DURATION_MS, delayMillis = 150),
         label = "controlsAlpha"
     )
     val controlsOffsetY by animateFloatAsState(
         targetValue = if (showContent.value) 0f else 30f,
-        animationSpec = tween(durationMillis = 350, delayMillis = 300),
+        animationSpec = tween(durationMillis = PlayerAnimationConfig.COLLAPSE_EXPAND_DURATION_MS, delayMillis = 100),
         label = "controlsOffsetY"
     )
 
@@ -419,6 +430,15 @@ fun PlayerScreen(
     }
 
 
+    // Back gesture interception for active sheets
+    BackHandler(enabled = uiState.isQueueModalShown || uiState.showLyrics) {
+        if (uiState.isQueueModalShown) {
+            playerViewModel.setQueueVisibility(false)
+        } else if (uiState.showLyrics) {
+            playerViewModel.toggleLyricsVisibility(false)
+        }
+    }
+
     // Queue
     if (uiState.isQueueModalShown) {
         QueueBottomSheet(
@@ -529,6 +549,8 @@ fun TopPlayerHeader(
     modifier: Modifier = Modifier
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    var showMenu by androidx.compose.runtime.remember { mutableStateOf(false) }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -562,7 +584,7 @@ fun TopPlayerHeader(
             modifier = Modifier.align(Alignment.Center)
         )
 
-        // Actions Row (Bluetooth/Cast & Queue)
+        // Actions Row (Bluetooth/Cast, Queue, & More Menu)
         Row(
             modifier = Modifier.align(Alignment.CenterEnd),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -614,6 +636,39 @@ fun TopPlayerHeader(
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(22.dp)
                 )
+            }
+
+            // More Options Button
+            androidx.compose.material3.IconButton(
+                onClick = { showMenu = !showMenu },
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(14.dp))
+            ) {
+                androidx.compose.material3.Icon(
+                    imageVector = Icons.Filled.MoreVert,
+                    contentDescription = "More Options",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(22.dp)
+                )
+
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("Download Track") },
+                        onClick = {
+                            showMenu = false
+                        }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("Add to Playlist") },
+                        onClick = {
+                            showMenu = false
+                        }
+                    )
+                }
             }
         }
     }
