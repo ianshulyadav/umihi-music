@@ -1,3 +1,4 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
 package ca.ilianokokoro.umihi.music.ui.screens.player.components
 
 import android.app.Activity
@@ -254,9 +255,8 @@ fun LyricsSheet(
         ) {
             when {
                 uiState.isLoadingLyrics -> {
-                    CircularProgressIndicator(
-                        color = accentColor,
-                        modifier = Modifier.size(48.dp)
+                    ContainedLoadingIndicator(
+                        indicatorColor = accentColor
                     )
                 }
                 uiState.lyrics == null -> {

@@ -22,6 +22,8 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.*
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -36,7 +38,7 @@ import ca.ilianokokoro.umihi.music.models.Song
 import ca.ilianokokoro.umihi.music.ui.components.SmartImage
 import ca.ilianokokoro.umihi.music.ui.theme.GoogleSansRounded
 
-@OptIn(ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MiniPlayer(
     modifier: Modifier = Modifier,
@@ -114,12 +116,11 @@ fun MiniPlayer(
                 )
 
                 if (isLoading) {
-                    CircularProgressIndicator(
+                    ContainedLoadingIndicator(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(2.dp),
-                        strokeWidth = 2.dp,
-                        color = primaryColor
+                            .padding(6.dp),
+                        indicatorColor = primaryColor
                     )
                 }
             }

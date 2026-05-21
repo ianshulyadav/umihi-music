@@ -140,11 +140,10 @@ fun PlaylistScreen(
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                             } else {
-                                androidx.compose.material3.CircularProgressIndicator(
+                                CircularWavyProgressIndicator(
                                     progress = { pullState.distanceFraction },
                                     modifier = Modifier.size(24.dp),
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    strokeWidth = 3.dp
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                             }
                         }

@@ -1,3 +1,4 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
 package ca.ilianokokoro.umihi.music.ui.screens.player.components
 
 import androidx.activity.compose.BackHandler
@@ -317,12 +318,11 @@ private fun MiniPlayerHeader(
                     modifier = Modifier.fillMaxSize()
                 )
                 if (isLoading) {
-                    androidx.compose.material3.CircularProgressIndicator(
+                    androidx.compose.material3.ContainedLoadingIndicator(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(10.dp),
-                        strokeWidth = 2.dp,
-                        color = miniOnContainerColor
+                            .padding(6.dp),
+                        indicatorColor = miniOnContainerColor
                     )
                 }
             }
