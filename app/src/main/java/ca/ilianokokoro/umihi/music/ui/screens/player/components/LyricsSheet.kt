@@ -160,10 +160,15 @@ fun LyricsSheet(
         }
     }
 
+    val albumColorSchemePair = ca.ilianokokoro.umihi.music.ui.theme.LocalAlbumColorScheme.current
+    val isDarkTheme = ca.ilianokokoro.umihi.music.ui.theme.LocalPixelPlayDarkTheme.current
+    val activeScheme = albumColorSchemePair?.let { if (isDarkTheme) it.dark else it.light }
+    val albumArtColor = activeScheme?.background ?: MaterialTheme.colorScheme.surface
+
     val accentColor = MaterialTheme.colorScheme.primary
     val onAccentColor = MaterialTheme.colorScheme.onPrimary
-    val containerColor = MaterialTheme.colorScheme.background
-    val onBackgroundColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val containerColor = Color.Black
+    val onBackgroundColor = Color.White.copy(alpha = 0.7f)
 
     Box(
         modifier = modifier
@@ -231,7 +236,7 @@ fun LyricsSheet(
                     }
                     .blur(bgBlurIntensity),
                 contentScale = ContentScale.Crop,
-                alpha = 0.45f
+                alpha = 0.4f
             )
         }
 
@@ -241,8 +246,14 @@ fun LyricsSheet(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                            containerColor.copy(alpha = 0.88f)
+                            Color.Black,
+                            Color.Black.copy(alpha = 0.85f),
+                            albumArtColor.copy(alpha = 0.6f),
+                            albumArtColor.copy(alpha = 0.75f),
+                            albumArtColor.copy(alpha = 0.75f),
+                            albumArtColor.copy(alpha = 0.6f),
+                            Color.Black.copy(alpha = 0.85f),
+                            Color.Black
                         )
                     )
                 )
@@ -332,7 +343,7 @@ fun LyricsSheet(
                                     label = "alpha"
                                 )
                                 val animatedColor by animateColorAsState(
-                                    targetValue = if (isActive) accentColor else MaterialTheme.colorScheme.onSurface,
+                                    targetValue = if (isActive) Color.White else Color.White.copy(alpha = 0.7f),
                                     animationSpec = spring(
                                         dampingRatio = Spring.DampingRatioNoBouncy,
                                         stiffness = Spring.StiffnessLow
@@ -385,7 +396,7 @@ fun LyricsSheet(
                                                 lineHeight = (lyricsFontSize * 0.75f) * 1.3f,
                                                 textAlign = lyricsAlignment
                                             ),
-                                            color = if (isActive) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
+                                            color = if (isActive) Color.White.copy(alpha = 0.85f) else Color.White.copy(alpha = 0.5f),
                                             modifier = Modifier.graphicsLayer {
                                                 this.alpha = animatedAlpha * 0.8f
                                             }
@@ -403,7 +414,7 @@ fun LyricsSheet(
                                                 lineHeight = (lyricsFontSize * 0.75f) * 1.3f,
                                                 textAlign = lyricsAlignment
                                             ),
-                                            color = MaterialTheme.colorScheme.onSurface,
+                                            color = if (isActive) Color.White.copy(alpha = 0.8f) else Color.White.copy(alpha = 0.45f),
                                             modifier = Modifier.graphicsLayer {
                                                 this.alpha = animatedAlpha * 0.7f
                                             }
@@ -463,7 +474,7 @@ fun LyricsSheet(
                                         lineHeight = lyricsFontSize * 1.4f,
                                         textAlign = lyricsAlignment
                                     ),
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                                    color = Color.White.copy(alpha = 0.85f),
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(vertical = 4.dp)
@@ -480,13 +491,30 @@ fun LyricsSheet(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .height(130.dp)
+                .height(140.dp)
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            containerColor,
-                            containerColor.copy(alpha = 0.6f),
+                            Color.Black,
+                            Color.Black.copy(alpha = 0.7f),
                             Color.Transparent
+                        )
+                    )
+                )
+        )
+
+        // --- IMMERSIVE BOTTOM GRADIENT SCRIM ---
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(140.dp)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color.Black.copy(alpha = 0.7f),
+                            Color.Black
                         )
                     )
                 )

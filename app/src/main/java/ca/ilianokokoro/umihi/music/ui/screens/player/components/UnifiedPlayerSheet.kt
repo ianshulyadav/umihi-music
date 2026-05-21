@@ -72,7 +72,7 @@ import ca.ilianokokoro.umihi.music.ui.theme.LocalPixelPlayDarkTheme
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-private val SheetCollapsedHeight = 72.dp
+private val SheetCollapsedHeight = 80.dp
 private val SheetCollapsedHorizontalPadding = 16.dp
 private val SheetCollapsedCornerRadius = 28.dp
 private val SheetExpandedCornerRadius = 0.dp
@@ -82,6 +82,7 @@ fun UnifiedPlayerSheet(
     playerViewModel: PlayerViewModel,
     showMiniPlayer: Boolean,
     bottomBarVisible: Boolean = false,
+    scaffoldBottomPadding: androidx.compose.ui.unit.Dp = 0.dp,
     modifier: Modifier = Modifier
 ) {
     val uiState by playerViewModel.uiState.collectAsStateWithLifecycle()
@@ -96,10 +97,10 @@ fun UnifiedPlayerSheet(
     val configuration = LocalConfiguration.current
     val density = LocalDensity.current
     val screenHeightDp = configuration.screenHeightDp.dp
-    val bottomInset = 0.dp
-    val bottomPadding = if (bottomBarVisible) 60.dp else 0.dp
-    val collapsedHeightPx = with(density) { (SheetCollapsedHeight + bottomInset + 16.dp).toPx() }
-    val collapsedOffsetY = with(density) { (screenHeightDp - collapsedHeightPx.toDp() - bottomPadding).toPx() }.coerceAtLeast(0f)
+    val gap = 12.dp
+    val collapsedOffsetY = with(density) {
+        (screenHeightDp - SheetCollapsedHeight - scaffoldBottomPadding - gap).toPx()
+    }.coerceAtLeast(0f)
 
     val sheetOffset = remember { Animatable(collapsedOffsetY) }
     val coroutineScope = rememberCoroutineScope()
@@ -149,22 +150,28 @@ fun UnifiedPlayerSheet(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .requiredHeight(screenHeightDp)
+            .requiredHeight(if (expansionFraction > 0f) screenHeightDp else SheetCollapsedHeight)
             .offset { IntOffset(0, translationY.roundToInt()) }
             .padding(horizontal = sheetHorizontalPadding)
             .graphicsLayer {
                 shadowElevation = 24f * expansionFraction
                 shape = RoundedCornerShape(topStart = sheetCornerRadius, topEnd = sheetCornerRadius)
-                clip = true
+                clip = expansionFraction > 0f
             }
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        miniContainerColor.copy(alpha = 0.4f * expansionFraction),
-                        sheetSurfaceColor.copy(alpha = 0.7f * expansionFraction),
-                        sheetBackgroundColor.copy(alpha = expansionFraction)
+            .then(
+                if (expansionFraction > 0f) {
+                    Modifier.background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                miniContainerColor.copy(alpha = 0.4f * expansionFraction),
+                                sheetSurfaceColor.copy(alpha = 0.7f * expansionFraction),
+                                sheetBackgroundColor.copy(alpha = expansionFraction)
+                            )
+                        )
                     )
-                )
+                } else {
+                    Modifier
+                }
             )
             .pointerInput(currentSong, collapsedOffsetY) {
                 detectVerticalDragGestures(
@@ -198,59 +205,78 @@ fun UnifiedPlayerSheet(
                 )
             }
     ) {
-        Surface(
-            tonalElevation = 8.dp * expansionFraction,
-            color = sheetSurfaceColor.copy(alpha = expansionFraction),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .navigationBarsPadding()
-                        .padding(bottom = bottomPadding, top = if (isExpanded) 12.dp else 0.dp)
-                ) {
-                    if (!isExpanded) {
-                        MiniPlayerHeader(
+        if (expansionFraction > 0f) {
+            Surface(
+                tonalElevation = 8.dp * expansionFraction,
+                color = sheetSurfaceColor.copy(alpha = expansionFraction),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .navigationBarsPadding()
+                            .padding(bottom = scaffoldBottomPadding, top = if (isExpanded) 12.dp else 0.dp)
+                    ) {
+                        if (!isExpanded) {
+                            MiniPlayerHeader(
+                                currentSong = currentSong,
+                                isPlaying = isPlaying,
+                                isLoading = isLoading,
+                                alpha = miniAlpha,
+                                onExpand = playerViewModel::expandPlayerSheet,
+                                onPlayPause = {
+                                    if (isPlaying) player?.pause() else player?.play()
+                                },
+                                onSkipPrevious = { player?.seekToPrevious() },
+                                onSkipNext = { player?.seekToNext() },
+                                onDismissPlaylist = playerViewModel::dismissPlaylist,
+                                miniContainerColor = miniContainerColor,
+                                miniOnContainerColor = miniOnContainerColor,
+                                miniPrimaryColor = miniPrimaryColor
+                            )
+                        }
+
+                        FullPlayerContent(
                             currentSong = currentSong,
                             isPlaying = isPlaying,
                             isLoading = isLoading,
-                            alpha = miniAlpha,
-                            onExpand = playerViewModel::expandPlayerSheet,
-                            onPlayPause = {
-                                if (isPlaying) player?.pause() else player?.play()
-                            },
-                            onSkipPrevious = { player?.seekToPrevious() },
-                            onSkipNext = { player?.seekToNext() },
-                            onDismissPlaylist = playerViewModel::dismissPlaylist,
-                            miniContainerColor = miniContainerColor,
-                            miniOnContainerColor = miniOnContainerColor,
-                            miniPrimaryColor = miniPrimaryColor
+                            progress = uiState.playbackProgress,
+                            uiState = uiState,
+                            alpha = fullAlpha,
+                            onCollapse = playerViewModel::collapsePlayerSheet,
+                            playerViewModel = playerViewModel,
+                            sheetSurfaceColor = sheetSurfaceColor,
+                            sheetSurfaceVariantColor = sheetSurfaceVariantColor,
+                            activeScheme = activeScheme
                         )
                     }
 
-                    FullPlayerContent(
-                        currentSong = currentSong,
-                        isPlaying = isPlaying,
-                        isLoading = isLoading,
-                        progress = uiState.playbackProgress,
-                        uiState = uiState,
-                        alpha = fullAlpha,
-                        onCollapse = playerViewModel::collapsePlayerSheet,
-                        playerViewModel = playerViewModel,
-                        sheetSurfaceColor = sheetSurfaceColor,
-                        sheetSurfaceVariantColor = sheetSurfaceVariantColor,
-                        activeScheme = activeScheme
-                    )
-                }
-
-                if (uiState.showLyrics) {
-                    LyricsSheet(
-                        onClose = { playerViewModel.toggleLyricsVisibility(false) },
-                        playerViewModel = playerViewModel
-                    )
+                    if (uiState.showLyrics) {
+                        LyricsSheet(
+                            onClose = { playerViewModel.toggleLyricsVisibility(false) },
+                            playerViewModel = playerViewModel
+                        )
+                    }
                 }
             }
+        } else {
+            MiniPlayerHeader(
+                currentSong = currentSong,
+                isPlaying = isPlaying,
+                isLoading = isLoading,
+                alpha = 1f,
+                onExpand = playerViewModel::expandPlayerSheet,
+                onPlayPause = {
+                    if (isPlaying) player?.pause() else player?.play()
+                },
+                onSkipPrevious = { player?.seekToPrevious() },
+                onSkipNext = { player?.seekToNext() },
+                onDismissPlaylist = playerViewModel::dismissPlaylist,
+                miniContainerColor = miniContainerColor,
+                miniOnContainerColor = miniOnContainerColor,
+                miniPrimaryColor = miniPrimaryColor
+            )
         }
     }
 }

@@ -131,107 +131,112 @@ fun NavigationRoot(modifier: Modifier = Modifier) {
 
     ) { paddingValues ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentAlignment = Alignment.BottomCenter
+            modifier = Modifier.fillMaxSize()
         ) {
-            NavDisplay(
-                modifier = Modifier.fillMaxSize(),
-                backStack = backStack,
-                onBack = backStack::safePop,
-                entryDecorators = listOf(
-                    rememberSaveableStateHolderNavEntryDecorator(),
-                    rememberViewModelStoreNavEntryDecorator(),
-                ),
-                transitionSpec = {
-                    slideInHorizontally(
-                        animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
-                        initialOffsetX = { it }
-                    ) + fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
-                    slideOutHorizontally(
-                        animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
-                        targetOffsetX = { -it / 3 }
-                    ) + fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
-                },
-                popTransitionSpec = {
-                    slideInHorizontally(
-                        animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
-                        initialOffsetX = { -it / 3 }
-                    ) + fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
-                    slideOutHorizontally(
-                        animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
-                        targetOffsetX = { it }
-                    ) + fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
-                },
-                predictivePopTransitionSpec = {
-                    slideInHorizontally(
-                        animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
-                        initialOffsetX = { -it / 3 }
-                    ) + fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
-                    slideOutHorizontally(
-                        animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
-                        targetOffsetX = { it }
-                    ) + fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
-                },
-                entryProvider = { key ->
-                    when (key) {
-                        is HomeScreenKey -> NavEntry(key) {
-                            HomeScreen(
-                                onSettingsButtonPress = { backStack.add(SettingsScreenKey) },
-                                onPlaylistPressed = { playlist ->
-                                    backStack.add(PlaylistScreenKey(playlistInfo = playlist))
-                                },
-                                application = app
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                NavDisplay(
+                    modifier = Modifier.fillMaxSize(),
+                    backStack = backStack,
+                    onBack = backStack::safePop,
+                    entryDecorators = listOf(
+                        rememberSaveableStateHolderNavEntryDecorator(),
+                        rememberViewModelStoreNavEntryDecorator(),
+                    ),
+                    transitionSpec = {
+                        slideInHorizontally(
+                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
+                            initialOffsetX = { it }
+                        ) + fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
+                        slideOutHorizontally(
+                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
+                            targetOffsetX = { -it / 3 }
+                        ) + fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
+                    },
+                    popTransitionSpec = {
+                        slideInHorizontally(
+                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
+                            initialOffsetX = { -it / 3 }
+                        ) + fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
+                        slideOutHorizontally(
+                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
+                            targetOffsetX = { it }
+                        ) + fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
+                    },
+                    predictivePopTransitionSpec = {
+                        slideInHorizontally(
+                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
+                            initialOffsetX = { -it / 3 }
+                        ) + fadeIn(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION)) togetherWith
+                        slideOutHorizontally(
+                            animationSpec = tween(Constants.Animation.NAVIGATION_DURATION),
+                            targetOffsetX = { it }
+                        ) + fadeOut(animationSpec = tween(Constants.Animation.NAVIGATION_DURATION))
+                    },
+                    entryProvider = { key ->
+                        when (key) {
+                            is HomeScreenKey -> NavEntry(key) {
+                                HomeScreen(
+                                    onSettingsButtonPress = { backStack.add(SettingsScreenKey) },
+                                    onPlaylistPressed = { playlist ->
+                                        backStack.add(PlaylistScreenKey(playlistInfo = playlist))
+                                    },
+                                    application = app
+                                )
+                            }
+
+                            is SettingsScreenKey -> NavEntry(key) {
+                                SettingsScreen(
+                                    openAuthScreen = { backStack.add(AuthScreenKey) },
+                                    application = app
+                                )
+                            }
+
+                            is PlaylistScreenKey -> NavEntry(key) {
+                                PlaylistScreen(
+                                    playlistInfo = key.playlistInfo,
+                                    onOpenPlayer = playerViewModel::expandPlayerSheet,
+                                    application = app
+                                )
+                            }
+
+                            is AuthScreenKey -> NavEntry(key) {
+                                AuthScreen(
+                                    onBack = backStack::safePop,
+                                    application = app
+                                )
+                            }
+
+                            is SearchScreenKey -> NavEntry(key) {
+                                SearchScreen(
+                                    application = app,
+                                )
+                            }
+
+                            else -> throw RuntimeException(
+                                app.getString(
+                                    R.string.invalid_navkey,
+                                    key
+                                )
                             )
                         }
-
-                        is SettingsScreenKey -> NavEntry(key) {
-                            SettingsScreen(
-                                openAuthScreen = { backStack.add(AuthScreenKey) },
-                                application = app
-                            )
-                        }
-
-                        is PlaylistScreenKey -> NavEntry(key) {
-                            PlaylistScreen(
-                                playlistInfo = key.playlistInfo,
-                                onOpenPlayer = playerViewModel::expandPlayerSheet,
-                                application = app
-                            )
-                        }
-
-                        is AuthScreenKey -> NavEntry(key) {
-                            AuthScreen(
-                                onBack = backStack::safePop,
-                                application = app
-                            )
-                        }
-
-                        is SearchScreenKey -> NavEntry(key) {
-                            SearchScreen(
-                                application = app,
-                            )
-                        }
-
-                        else -> throw RuntimeException(
-                            app.getString(
-                                R.string.invalid_navkey,
-                                key
-                            )
-                        )
                     }
-                }
-            )
+                )
+            }
 
             UnifiedPlayerSheet(
                 playerViewModel = playerViewModel,
                 showMiniPlayer = screenConfig.showMiniPlayer,
                 bottomBarVisible = screenConfig.showBottomBar && !isPlayerSheetExpanded,
+                scaffoldBottomPadding = paddingValues.calculateBottomPadding(),
                 modifier = Modifier.fillMaxWidth()
             )
         }
-      }
+    }
     }
 }
 
